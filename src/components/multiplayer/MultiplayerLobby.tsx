@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
-import { Users, Copy, Check, Play, Settings, LogOut, Shield, Crown, WifiOff, Clock, Flame, Gamepad2, Swords } from 'lucide-react';
+import { Users, Copy, Check, Play, Settings, LogOut, Shield, Crown, WifiOff, Clock, Flame, Gamepad2, Swords, MapPin } from 'lucide-react';
+import { MAP_PRESETS } from '../../game/maps';
 
 export const MultiplayerLobby: React.FC = () => {
   const { room, playerId, isHost, updateSettings, startGame, leaveRoom, isResolvingTarget, error, clearError } = useMultiplayer();
@@ -135,7 +136,7 @@ export const MultiplayerLobby: React.FC = () => {
                 )}
               </div>
 
-              {/* Game Type (Classic vs Duels) */}
+              {/* Game Type (Classic vs Duels vs Country Streak) */}
               <div className="space-y-1">
                 <label className="text-xs text-slate-400 flex items-center gap-1">
                   <Gamepad2 className="w-3.5 h-3.5 text-amber-400" /> Game Type
@@ -144,25 +145,45 @@ export const MultiplayerLobby: React.FC = () => {
                   <select
                     value={room.settings.gameType || 'classic'}
                     onChange={(e) => {
-                      const newType = e.target.value as 'classic' | 'duels';
+                      const newType = e.target.value as 'classic' | 'duels' | 'country_streak' | 'time_attack';
                       handleSettingsChange('gameType', newType);
                       if (newType === 'duels' && room.settings.maxRounds < 10) {
                         handleSettingsChange('maxRounds', 20);
+                      } else if (newType === 'country_streak') {
+                        handleSettingsChange('mapId', 'world');
+                        handleSettingsChange('maxRounds', 100);
+                      } else if (newType === 'time_attack') {
+                        handleSettingsChange('timeLimitSeconds', 30);
+                        if (room.settings.maxRounds > 10) {
+                          handleSettingsChange('maxRounds', 5);
+                        }
                       }
                     }}
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
                   >
                     <option value="classic">Classic (Standard Multi-round)</option>
                     <option value="duels">Duels (1v1 Health & Multipliers)</option>
+                    <option value="country_streak">Country Streak (Last Survivor)</option>
+                    <option value="time_attack">⚡ Time Attack (Fast 30s + Multiplier)</option>
                   </select>
                 ) : (
                   <div>
                     <p className="text-lg font-bold text-slate-100 uppercase tracking-wider">
-                      {(room.settings.gameType || 'classic') === 'duels' ? '⚔️ Duels (1v1 HP)' : '🏆 Classic'}
+                      {(room.settings.gameType || 'classic') === 'duels'
+                        ? '⚔️ Duels (1v1 HP)'
+                        : room.settings.gameType === 'country_streak'
+                        ? '🔥 Country Streak'
+                        : room.settings.gameType === 'time_attack'
+                        ? '⚡ Time Attack'
+                        : '🏆 Classic'}
                     </p>
                     <p className="text-[11px] text-slate-400">
                       {(room.settings.gameType || 'classic') === 'duels'
                         ? '2 Players • 6000 HP each • Score difference deals damage'
+                        : room.settings.gameType === 'country_streak'
+                        ? 'Multiplayer elimination • World map • Last survivor wins'
+                        : room.settings.gameType === 'time_attack'
+                        ? '30s rounds • Speed multiplier (1.5x → 1.0x) • Pin & submit fast!'
                         : 'Standard mode • High score wins'}
                     </p>
                   </div>
@@ -204,19 +225,60 @@ export const MultiplayerLobby: React.FC = () => {
                 </label>
                 {isHost && isEditingSettings ? (
                   <select
-                    value={room.settings.timeLimitSeconds}
+                    value={room.settings.gameType === 'time_attack' ? 30 : room.settings.timeLimitSeconds}
                     onChange={(e) => handleSettingsChange('timeLimitSeconds', parseInt(e.target.value, 10))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                    disabled={room.settings.gameType === 'time_attack'}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value={0}>No Limit</option>
-                    <option value={30}>30 Seconds</option>
-                    <option value={60}>60 Seconds</option>
-                    <option value={90}>90 Seconds</option>
-                    <option value={120}>120 Seconds</option>
+                    {room.settings.gameType === 'time_attack' ? (
+                      <option value={30}>30 Seconds (Fixed for Time Attack)</option>
+                    ) : (
+                      <>
+                        <option value={0}>No Limit</option>
+                        <option value={30}>30 Seconds</option>
+                        <option value={60}>60 Seconds</option>
+                        <option value={90}>90 Seconds</option>
+                        <option value={120}>120 Seconds</option>
+                      </>
+                    )}
                   </select>
                 ) : (
                   <p className="text-lg font-bold text-slate-100">
-                    {room.settings.timeLimitSeconds > 0 ? `${room.settings.timeLimitSeconds}s per round` : 'No Limit'}
+                    {room.settings.gameType === 'time_attack'
+                      ? '30s per round (Fixed)'
+                      : room.settings.timeLimitSeconds > 0
+                      ? `${room.settings.timeLimitSeconds}s per round`
+                      : 'No Limit'}
+                  </p>
+                )}
+              </div>
+
+              {/* Map Selection */}
+              <div className="space-y-1">
+                <label className="text-xs text-slate-400 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Map
+                </label>
+                {isHost && isEditingSettings ? (
+                  <select
+                    value={room.settings.gameType === 'country_streak' ? 'world' : (room.settings.mapId || 'world')}
+                    onChange={(e) => handleSettingsChange('mapId', e.target.value)}
+                    disabled={room.settings.gameType === 'country_streak'}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="world">World</option>
+                    <option value="europe">Europe</option>
+                    <option value="india">India</option>
+                    <option value="asia">Asia</option>
+                    <option value="north_america">North America</option>
+                    <option value="south_america">South America</option>
+                    <option value="africa">Africa</option>
+                    <option value="oceania">Oceania</option>
+                  </select>
+                ) : (
+                  <p className="text-lg font-bold text-slate-100 capitalize">
+                    {room.settings.gameType === 'country_streak'
+                      ? 'World Map (Fixed for Streak)'
+                      : MAP_PRESETS[room.settings.mapId || 'world']?.name || room.settings.mapId || 'World'}
                   </p>
                 )}
               </div>

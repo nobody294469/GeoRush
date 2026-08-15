@@ -23,6 +23,8 @@ async function startServer() {
   const roomManager = new RoomManager();
   setupSocketHandlers(io, roomManager);
 
+  app.use(express.json());
+
   // Health check endpoint
   app.get('/api/health', (_req, res) => {
     res.json({

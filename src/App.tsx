@@ -6,6 +6,7 @@ import { TelemetryModal } from './components/common/TelemetryModal';
 import { PanoramaViewer } from './components/panorama/PanoramaViewer';
 import { GuessMap } from './components/map/GuessMap';
 import { RoundResultOverlay } from './components/game/RoundResultOverlay';
+import { CountryStreakHUD } from './components/game/CountryStreakHUD';
 import { GameSummary } from './components/game/GameSummary';
 import { StartScreen } from './components/game/StartScreen';
 import { MultiplayerLobby } from './components/multiplayer/MultiplayerLobby';
@@ -23,7 +24,8 @@ const MainLayout: React.FC = () => {
     isLoadingLocations,
     isStreetViewReady,
     currentRoundIndex,
-    restartGame
+    restartGame,
+    settings
   } = useGame();
 
   const [isKeyboardMapExpanded, setIsKeyboardMapExpanded] = useState<boolean>(false);
@@ -126,13 +128,20 @@ const MainLayout: React.FC = () => {
           </div>
         )}
 
-        {/* Round Result Overlay */}
-        <RoundResultOverlay />
+        {/* Mode-specific HUD / Controls */}
+        {settings.modeId === 'country_streak' ? (
+          <CountryStreakHUD />
+        ) : (
+          <>
+            {/* Round Result Overlay */}
+            <RoundResultOverlay />
 
-        {/* Collapsible Guess Map (Bottom Right Corner) */}
-        <div className="absolute bottom-6 right-6 z-30">
-          <GuessMap isKeyboardExpanded={isKeyboardMapExpanded} />
-        </div>
+            {/* Collapsible Guess Map (Bottom Right Corner) */}
+            <div className="absolute bottom-6 right-6 z-30">
+              <GuessMap isKeyboardExpanded={isKeyboardMapExpanded} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Development Telemetry Modal */}

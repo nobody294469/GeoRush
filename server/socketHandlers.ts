@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { RoomManager } from './roomManager';
+import { RoomManager, toPublicRoom } from './roomManager';
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -22,9 +22,10 @@ export function setupSocketHandlers(
         );
 
         if (response.success && response.room) {
-          socket.join(response.room.code);
-          if (callback) callback(response);
-          io.to(response.room.code).emit('room:updated', response.room);
+          const publicRoom = toPublicRoom(response.room);
+          socket.join(publicRoom.code);
+          if (callback) callback({ ...response, room: publicRoom });
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
         } else {
           if (callback) callback(response);
         }
@@ -43,12 +44,13 @@ export function setupSocketHandlers(
         );
 
         if (response.success && response.room) {
-          socket.join(response.room.code);
-          if (callback) callback(response);
-          io.to(response.room.code).emit('room:updated', response.room);
-          const joinedPlayer = response.room.players.find(p => p.id === socket.id);
+          const publicRoom = toPublicRoom(response.room);
+          socket.join(publicRoom.code);
+          if (callback) callback({ ...response, room: publicRoom });
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
+          const joinedPlayer = publicRoom.players.find(p => p.id === socket.id);
           if (joinedPlayer) {
-            socket.to(response.room.code).emit('room:player_joined', joinedPlayer);
+            socket.to(publicRoom.code).emit('room:player_joined', joinedPlayer);
           }
         } else {
           if (callback) callback(response);
@@ -68,12 +70,18 @@ export function setupSocketHandlers(
           if (wasClosed) {
             io.to(previousRoomCode).emit('room:closed', { reason: 'All players left the room.' });
           } else if (updatedRoom) {
-            io.to(previousRoomCode).emit('room:updated', updatedRoom);
+            const publicRoom = toPublicRoom(updatedRoom);
+            io.to(previousRoomCode).emit('room:updated', publicRoom);
             io.to(previousRoomCode).emit('room:player_left', { playerId: socket.id, reason: 'Player left room.' });
           }
         }
 
-        if (callback) callback(response);
+        if (callback) {
+          callback({
+            ...response,
+            room: response.room ? toPublicRoom(response.room) : undefined
+          });
+        }
       } catch (err: any) {
         if (callback) callback({ success: false, error: err.message || 'Failed to leave room.' });
       }
@@ -85,8 +93,9 @@ export function setupSocketHandlers(
         const response = roomManager.updateSettings(socket.id, payload?.settings || {});
 
         if (response.success && response.room) {
-          if (callback) callback(response);
-          io.to(response.room.code).emit('room:updated', response.room);
+          const publicRoom = toPublicRoom(response.room);
+          if (callback) callback({ ...response, room: publicRoom });
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
         } else {
           if (callback) callback(response);
         }
@@ -100,8 +109,9 @@ export function setupSocketHandlers(
       try {
         const res = roomManager.startGameSession(socket.id);
         if (res.success && res.room && res.candidateSeed) {
-          io.to(res.room.code).emit('room:updated', res.room);
-          if (callback) callback({ success: true, room: res.room });
+          const publicRoom = toPublicRoom(res.room);
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
+          if (callback) callback({ success: true, room: publicRoom });
 
           // Request host to perform Street View resolution for candidateSeed
           socket.emit('game:resolve_target_request', {
@@ -119,13 +129,30 @@ export function setupSocketHandlers(
     // 6. Host Target Resolution Response
     socket.on('game:resolve_target_response', (payload: TargetResolutionResult, callback) => {
       try {
+        if (payload.failed) {
+          const res = roomManager.handleTargetResolutionFailure(socket.id, payload);
+          if (res.success && res.room && res.candidateSeed) {
+            const publicRoom = toPublicRoom(res.room);
+            io.to(publicRoom.code).emit('room:updated', publicRoom);
+            socket.emit('game:resolve_target_request', {
+              roundIndex: res.room.gameSession?.currentRound || 1,
+              candidateSeed: res.candidateSeed
+            });
+          } else {
+             io.to(res.room?.code || '').emit('error', { message: res.error || 'Failed to resolve target after multiple attempts.' });
+          }
+          if (callback) callback({ success: false, error: res.error || 'Target resolution failed.' });
+          return;
+        }
+
         const timerExpireHandler = () => {
           const room = roomManager.getPlayerRoom(socket.id);
           if (room && room.gameSession) {
             const endRes = roomManager.endRound(room.code);
-            if (endRes.success && endRes.session && endRes.roundResult) {
-              io.to(room.code).emit('room:updated', room);
-              io.to(room.code).emit('game:round_ended', {
+            if (endRes.success && endRes.session && endRes.roundResult && endRes.room) {
+              const publicRoom = toPublicRoom(endRes.room);
+              io.to(publicRoom.code).emit('room:updated', publicRoom);
+              io.to(publicRoom.code).emit('game:round_ended', {
                 session: endRes.session,
                 roundResult: endRes.roundResult
               });
@@ -135,9 +162,10 @@ export function setupSocketHandlers(
 
         const res = roomManager.activateTargetFromHost(socket.id, payload, timerExpireHandler);
         if (res.success && res.room && res.activeTarget && res.session) {
-          if (callback) callback({ success: true, room: res.room });
-          io.to(res.room.code).emit('room:updated', res.room);
-          io.to(res.room.code).emit('game:round_started', {
+          const publicRoom = toPublicRoom(res.room);
+          if (callback) callback({ success: true, room: publicRoom });
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
+          io.to(publicRoom.code).emit('game:round_started', {
             session: res.session,
             activeTarget: res.activeTarget
           });
@@ -152,7 +180,13 @@ export function setupSocketHandlers(
     // 7. Submit Guess
     socket.on('game:submit_guess', (payload, callback) => {
       try {
-        const res = roomManager.submitGuess(socket.id, payload.roundIndex, payload.latitude, payload.longitude);
+        const res = roomManager.submitGuess(
+          socket.id,
+          payload.roundIndex,
+          payload.latitude || 0,
+          payload.longitude || 0,
+          payload.countryCode
+        );
         if (res.success && res.room && res.session) {
           if (callback) callback({ success: true, distanceKm: res.distanceKm, score: res.score });
 
@@ -166,12 +200,16 @@ export function setupSocketHandlers(
           // Check if all players submitted
           if (res.allSubmitted) {
             const endRes = roomManager.endRound(res.room.code);
-            if (endRes.success && endRes.session && endRes.roundResult) {
-              io.to(res.room.code).emit('room:updated', res.room);
-              io.to(res.room.code).emit('game:round_ended', {
+            if (endRes.success && endRes.session && endRes.roundResult && endRes.room) {
+              const publicRoom = toPublicRoom(endRes.room);
+              io.to(publicRoom.code).emit('room:updated', publicRoom);
+              io.to(publicRoom.code).emit('game:round_ended', {
                 session: endRes.session,
                 roundResult: endRes.roundResult
               });
+              if (endRes.session.roundState === 'GAME_FINISHED') {
+                io.to(publicRoom.code).emit('game:finished', { session: endRes.session });
+              }
             }
           }
         } else {
@@ -187,11 +225,12 @@ export function setupSocketHandlers(
       try {
         const res = roomManager.nextRound(socket.id);
         if (res.success && res.room && res.session) {
-          if (callback) callback({ success: true, room: res.room });
-          io.to(res.room.code).emit('room:updated', res.room);
+          const publicRoom = toPublicRoom(res.room);
+          if (callback) callback({ success: true, room: publicRoom });
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
 
           if (res.finished) {
-            io.to(res.room.code).emit('game:finished', { session: res.session });
+            io.to(publicRoom.code).emit('game:finished', { session: res.session });
           } else if (res.candidateSeed) {
             socket.emit('game:resolve_target_request', {
               roundIndex: res.session.currentRound,
@@ -211,8 +250,9 @@ export function setupSocketHandlers(
       try {
         const res = roomManager.resetToLobby(socket.id);
         if (res.success && res.room) {
-          if (callback) callback({ success: true, room: res.room });
-          io.to(res.room.code).emit('room:updated', res.room);
+          const publicRoom = toPublicRoom(res.room);
+          if (callback) callback({ success: true, room: publicRoom });
+          io.to(publicRoom.code).emit('room:updated', publicRoom);
         } else {
           if (callback) callback({ success: false, error: res.error || 'Failed to reset room.' });
         }
@@ -229,7 +269,8 @@ export function setupSocketHandlers(
           if (wasClosed) {
             io.to(previousRoomCode).emit('room:closed', { reason: 'All players disconnected.' });
           } else if (updatedRoom) {
-            io.to(previousRoomCode).emit('room:updated', updatedRoom);
+            const publicRoom = toPublicRoom(updatedRoom);
+            io.to(previousRoomCode).emit('room:updated', publicRoom);
             io.to(previousRoomCode).emit('room:player_left', { playerId: socket.id, reason: 'Player disconnected.' });
             
             // Check if active game session needs to trigger round end if all remaining connected submitted
@@ -237,9 +278,10 @@ export function setupSocketHandlers(
               const allSubmitted = updatedRoom.gameSession.haveAllPlayersSubmitted(updatedRoom.players);
               if (allSubmitted) {
                 const endRes = roomManager.endRound(updatedRoom.code);
-                if (endRes.success && endRes.session && endRes.roundResult) {
-                  io.to(updatedRoom.code).emit('room:updated', updatedRoom);
-                  io.to(updatedRoom.code).emit('game:round_ended', {
+                if (endRes.success && endRes.session && endRes.roundResult && endRes.room) {
+                  const publicEndRoom = toPublicRoom(endRes.room);
+                  io.to(publicEndRoom.code).emit('room:updated', publicEndRoom);
+                  io.to(publicEndRoom.code).emit('game:round_ended', {
                     session: endRes.session,
                     roundResult: endRes.roundResult
                   });

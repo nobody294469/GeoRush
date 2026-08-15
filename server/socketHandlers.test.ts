@@ -116,6 +116,127 @@ async function runSocketHandlerTests() {
 
   await playerLeftPromise;
 
+  // 5. Test Country Streak Socket Answer Integration & Submission Contract
+  {
+    const csClient1: ClientSocket<ServerToClientEvents, ClientToServerEvents> = ioClient(`http://localhost:${port}`);
+    const csClient2: ClientSocket<ServerToClientEvents, ClientToServerEvents> = ioClient(`http://localhost:${port}`);
+
+    await Promise.all([
+      new Promise<void>((res) => csClient1.on('connect', () => res())),
+      new Promise<void>((res) => csClient2.on('connect', () => res()))
+    ]);
+
+    let csRoomCode = '';
+    await new Promise<void>((resolve) => {
+      csClient1.emit('room:create', { displayName: 'HostA', settings: { gameType: 'country_streak' } }, (res: RoomActionResponse) => {
+        assert(res.success === true, 'HostA created country_streak room via socket');
+        csRoomCode = res.room!.code;
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      csClient2.emit('room:join', { roomCode: csRoomCode, displayName: 'GuestB' }, (res: RoomActionResponse) => {
+        assert(res.success === true, 'GuestB joined country_streak room via socket');
+        resolve();
+      });
+    });
+
+    // Handle target resolution request on host
+    csClient1.on('game:resolve_target_request', ({ roundIndex, candidateSeed }) => {
+      csClient1.emit('game:resolve_target_response', {
+        roundIndex,
+        candidateId: candidateSeed.candidateId,
+        resolvedLat: candidateSeed.latitude,
+        resolvedLng: candidateSeed.longitude,
+        country: 'United States',
+        countryCode: 'US'
+      });
+    });
+
+    // Start game
+    await new Promise<void>((resolve) => {
+      csClient1.emit('game:start', (res: RoomActionResponse) => {
+        assert(res.success === true, 'HostA started country_streak game via socket');
+        resolve();
+      });
+    });
+
+    // Both players listen for game:finished
+    const finishedPromise = new Promise<any>((resolve) => {
+      csClient1.on('game:finished', ({ session }) => {
+        resolve(session);
+      });
+    });
+
+    // Submit guesses over socket payload: Player A submits correct countryCode 'US', Player B submits wrong countryCode 'FR'
+    await new Promise<void>((resolve) => {
+      csClient1.emit('game:submit_guess', {
+        roundIndex: 1,
+        latitude: 0,
+        longitude: 0,
+        countryCode: 'US'
+      }, (res) => {
+        assert(res.success === true, 'Player A submit_guess with countryCode: US succeeded');
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      csClient2.emit('game:submit_guess', {
+        roundIndex: 1,
+        latitude: 0,
+        longitude: 0,
+        countryCode: 'FR'
+      }, (res) => {
+        assert(res.success === true, 'Player B submit_guess with countryCode: FR succeeded');
+        resolve();
+      });
+    });
+
+    const finalSession = await finishedPromise;
+    assert(finalSession.streakState !== undefined, 'StreakState exists on finished session');
+    const playerAState = finalSession.streakState!.playerStates[csClient1.id!];
+    const playerBState = finalSession.streakState!.playerStates[csClient2.id!];
+
+    assert(playerAState.isEliminated === false, 'Player A is NOT eliminated');
+    assert(playerAState.streak === 1, 'Player A streak is 1');
+    assert(playerBState.isEliminated === true, 'Player B IS eliminated');
+    assert(finalSession.streakState!.isDraw === false, 'Match is NOT a draw');
+    assert(finalSession.streakState!.endReason === 'LAST_SURVIVOR', 'End reason is LAST_SURVIVOR');
+    assert(finalSession.streakState!.winnerPlayerId === csClient1.id, 'Player A is winner');
+
+    // Test Host Return to Lobby action via playAgain socket event
+    const lobbyUpdatedPromise = new Promise<void>((resolve) => {
+      csClient2.on('room:updated', (room) => {
+        if (room.state === 'LOBBY') {
+          assert(room.state === 'LOBBY', 'Room returned to LOBBY state after host playAgain');
+          resolve();
+        }
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      csClient1.emit('game:play_again', (res) => {
+        assert(res.success === true, 'Host playAgain socket request succeeded');
+        resolve();
+      });
+    });
+
+    await lobbyUpdatedPromise;
+
+    // Test Guest Back to Lobby action via leaveRoom socket event
+    await new Promise<void>((resolve) => {
+      csClient2.emit('room:leave', (res) => {
+        assert(res.success === true, 'Guest leaveRoom socket request succeeded');
+        resolve();
+      });
+    });
+
+    csClient1.disconnect();
+    csClient2.disconnect();
+  }
+
   // Cleanup connections and server
   client1.disconnect();
   client2.disconnect();

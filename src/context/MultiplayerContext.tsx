@@ -32,7 +32,7 @@ interface MultiplayerContextType {
   leaveRoom: () => Promise<boolean>;
   updateSettings: (settings: Partial<RoomSettings>) => Promise<boolean>;
   startGame: () => Promise<boolean>;
-  submitGuess: (latitude: number, longitude: number) => Promise<{ success: boolean; distanceKm?: number; score?: number; error?: string }>;
+  submitGuess: (latitude: number, longitude: number, countryCode?: string) => Promise<{ success: boolean; distanceKm?: number; score?: number; error?: string }>;
   nextRound: () => Promise<boolean>;
   playAgain: () => Promise<boolean>;
   clearError: () => void;
@@ -111,9 +111,14 @@ export const MultiplayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         const resolved = await resolveCandidateLocation(candLocation, apiKey, apiMode);
 
+        if (apiMode === 'REAL' && !resolved) {
+          throw new Error('Target resolution failed in REAL mode.');
+        }
+
         const targetResult: TargetResolutionResult = {
           roundIndex,
           candidateId: candidateSeed.candidateId,
+          apiMode,
           panoId: resolved?.panoId || '',
           resolvedLat: resolved?.lat ?? candidateSeed.latitude,
           resolvedLng: resolved?.lng ?? candidateSeed.longitude,
@@ -257,7 +262,7 @@ export const MultiplayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, []);
 
-  const submitGuess = useCallback(async (latitude: number, longitude: number) => {
+  const submitGuess = useCallback(async (latitude: number, longitude: number, countryCode?: string) => {
     if (!socketRef.current || !activeTarget) {
       return { success: false, error: 'No active round.' };
     }
@@ -265,7 +270,8 @@ export const MultiplayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       socketRef.current!.emit('game:submit_guess', {
         roundIndex: activeTarget.roundIndex,
         latitude,
-        longitude
+        longitude,
+        countryCode
       }, (res) => {
         if (res.success) {
           setHasSubmittedGuess(true);

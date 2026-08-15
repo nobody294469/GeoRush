@@ -4,6 +4,7 @@ import { devTelemetry } from '../../utils/telemetry';
 import { loadGoogleMapsApi } from '../../utils/googleMapsLoader';
 import { Compass } from '../common/Compass';
 import { MapPin, AlertTriangle, RefreshCw, Compass as CompassIcon, Navigation } from 'lucide-react';
+import { GameRules } from '../../types/game';
 
 interface RealPanoramaViewerProps {
   apiKey: string;
@@ -11,6 +12,7 @@ interface RealPanoramaViewerProps {
   panoId?: string;
   initialHeading?: number;
   initialPitch?: number;
+  rules?: GameRules;
 }
 
 export const RealPanoramaViewer: React.FC<RealPanoramaViewerProps> = ({
@@ -18,7 +20,8 @@ export const RealPanoramaViewer: React.FC<RealPanoramaViewerProps> = ({
   className = '',
   panoId: overridePanoId,
   initialHeading: overrideHeading,
-  initialPitch: overridePitch
+  initialPitch: overridePitch,
+  rules: overrideRules
 }) => {
   const { currentLocation, currentNode, settings, setStreetViewReady, resetPovCount, currentRoundIndex } = useGame();
   
@@ -30,7 +33,7 @@ export const RealPanoramaViewer: React.FC<RealPanoramaViewerProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [heading, setHeading] = useState<number>(overrideHeading ?? currentLocation?.heading ?? 0);
 
-  const rules = settings?.rules || { pan: 'ALLOW_PAN', zoom: 'ALLOW_ZOOM', movement: 'ALLOW_MOVING' };
+  const rules = overrideRules || settings?.rules || { pan: 'ALLOW_PAN', zoom: 'ALLOW_ZOOM', movement: 'ALLOW_MOVING' };
 
   const rulesRef = useRef(rules);
   rulesRef.current = rules;

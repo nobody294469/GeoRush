@@ -7,7 +7,8 @@ import { Trophy, Star, RotateCcw, MapPin, ArrowLeft, Globe, Award } from 'lucide
 export const GameSummary: React.FC = () => {
   const { results, totalScore, restartGame, startGame, settings } = useGame();
 
-  const maxTotalScore = settings.maxRounds * 5000;
+  const isTimeAttack = settings.modeId === 'time_attack';
+  const maxTotalScore = settings.maxRounds * (isTimeAttack ? 7500 : 5000);
   const percentage = Math.round((totalScore / maxTotalScore) * 100);
 
   // Calculate star rating (1 to 5 stars)
@@ -15,10 +16,11 @@ export const GameSummary: React.FC = () => {
 
   // Performance Tier Title
   const getPerformanceTitle = (score: number) => {
-    if (score >= 22500) return { title: 'Geography Grandmaster', badge: '🏆' };
-    if (score >= 18000) return { title: 'World Pathfinder', badge: '🧭' };
-    if (score >= 12000) return { title: 'Global Explorer', badge: '🌐' };
-    if (score >= 6000) return { title: 'Curious Navigator', badge: '🗺️' };
+    const scale = isTimeAttack ? 1.5 : 1.0;
+    if (score >= 22500 * scale) return { title: 'Geography Grandmaster', badge: '🏆' };
+    if (score >= 18000 * scale) return { title: 'World Pathfinder', badge: '🧭' };
+    if (score >= 12000 * scale) return { title: 'Global Explorer', badge: '🌐' };
+    if (score >= 6000 * scale) return { title: 'Curious Navigator', badge: '🗺️' };
     return { title: 'Novice Traveler', badge: '🎒' };
   };
 
@@ -121,6 +123,18 @@ export const GameSummary: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-6 text-right font-mono">
+                  {isTimeAttack && (
+                    <>
+                      <div>
+                        <div className="text-slate-700 font-semibold">{r.timeTakenSeconds}s</div>
+                        <div className="text-[10px] text-slate-400 uppercase">time</div>
+                      </div>
+                      <div>
+                        <div className="text-sky-700 font-semibold">⚡ {(r.timeMultiplier ?? 1.0).toFixed(3)}x</div>
+                        <div className="text-[10px] text-slate-400 uppercase">multiplier</div>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <div className="text-slate-700 font-semibold">{formatDistance(r.distanceKm)}</div>
                     <div className="text-[10px] text-slate-400 uppercase">distance</div>

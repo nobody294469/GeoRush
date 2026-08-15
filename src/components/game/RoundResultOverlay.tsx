@@ -36,12 +36,38 @@ export const RoundResultOverlay: React.FC = () => {
           </div>
 
           <div className="text-right">
-            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Round Score</div>
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+              {settings.modeId === 'time_attack' ? 'Time Attack Score' : 'Round Score'}
+            </div>
             <div className="text-2xl font-black text-amber-600 font-mono">
-              +{currentResult.score.toLocaleString()} <span className="text-xs text-slate-400">/ 5,000</span>
+              +{currentResult.score.toLocaleString()} <span className="text-xs text-slate-400">/ {settings.modeId === 'time_attack' ? '7,500' : '5,000'}</span>
             </div>
           </div>
         </div>
+
+        {/* Time Attack Detailed Breakdown */}
+        {settings.modeId === 'time_attack' && (
+          <div className="grid grid-cols-3 gap-2 bg-sky-50/80 rounded-xl p-3 border border-sky-200 text-center font-mono text-xs">
+            <div>
+              <div className="text-[10px] text-sky-700 font-semibold uppercase">Base Geo Score</div>
+              <div className="font-bold text-slate-800 mt-0.5 font-mono">
+                {(currentResult.baseScore ?? currentResult.score).toLocaleString()}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-sky-700 font-semibold uppercase">Time Taken</div>
+              <div className="font-bold text-slate-800 mt-0.5 font-mono">
+                {currentResult.timeTakenSeconds}s
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-sky-700 font-semibold uppercase">Speed Bonus</div>
+              <div className="font-bold text-sky-700 mt-0.5 font-mono">
+                ⚡ {(currentResult.timeMultiplier ?? 1.0).toFixed(3)}x
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Location Details */}
         <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">

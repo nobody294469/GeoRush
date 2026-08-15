@@ -68,6 +68,11 @@ export const Navbar: React.FC = () => {
               }`}>
                 <Clock className={`w-3.5 h-3.5 ${isTimeLow ? 'text-rose-600' : 'text-teal-600'}`} />
                 <span className="text-sm">{formatTime(timeRemaining)}</span>
+                {settings.modeId === 'time_attack' && (
+                  <span className="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-extrabold font-mono border border-sky-300">
+                    ⚡ {(Math.max(1.0, Math.min(1.5, 1.5 - ((30 - timeRemaining) / 60)))).toFixed(2)}x
+                  </span>
+                )}
                 {!isStreetViewReady && <span className="text-[10px] font-sans text-slate-400">(Paused)</span>}
               </div>
               <div className="w-px h-4 bg-slate-200" />

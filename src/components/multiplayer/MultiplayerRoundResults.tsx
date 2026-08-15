@@ -1,7 +1,7 @@
 import React from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { MultiplayerResultMap } from './MultiplayerResultMap';
-import { Award, ArrowRight, Trophy, MapPin, Navigation, Clock, Heart, Swords, ShieldAlert } from 'lucide-react';
+import { Award, ArrowRight, Trophy, MapPin, Navigation, Clock, Heart, Swords, ShieldAlert, Zap } from 'lucide-react';
 import { DuelRoundResult } from '../../shared/types/multiplayer';
 
 export const MultiplayerRoundResults: React.FC = () => {
@@ -187,15 +187,27 @@ export const MultiplayerRoundResults: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* CLASSIC LEADERBOARD PANEL */
+              /* CLASSIC / TIME ATTACK LEADERBOARD PANEL */
               <div>
                 <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-                  <Trophy className="w-4 h-4 text-amber-400" /> Round Leaderboard
+                  {gameSession.gameType === 'time_attack' ? (
+                    <>
+                      <Zap className="w-4 h-4 text-amber-400 fill-amber-400" /> Time Attack Leaderboard
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="w-4 h-4 text-amber-400" /> Round Leaderboard
+                    </>
+                  )}
                 </h2>
 
                 <div className="space-y-2">
                   {currentRoundResult.guesses.map((guess, idx) => {
                     const playerStanding = gameSession.standings.find(s => s.playerId === guess.playerId);
+                    const isTimeAttack = gameSession.gameType === 'time_attack';
+                    const baseScore = guess.baseScore ?? Math.round(guess.score);
+                    const multiplier = guess.timeMultiplier ?? 1.0;
+
                     return (
                       <div
                         key={guess.playerId}
@@ -216,7 +228,15 @@ export const MultiplayerRoundResults: React.FC = () => {
                             {idx + 1}
                           </span>
                           <div className="flex flex-col">
-                            <span className="font-bold text-slate-100">{guess.displayName}</span>
+                            <span className="font-bold text-slate-100 flex items-center gap-1.5">
+                              {guess.displayName}
+                              {isTimeAttack && !guess.timedOut && (
+                                <span className="bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold flex items-center gap-0.5">
+                                  <Zap className="w-3 h-3 fill-current inline" />
+                                  {multiplier.toFixed(2)}x
+                                </span>
+                              )}
+                            </span>
                             <span className="text-[11px] text-slate-400">
                               {guess.timedOut ? 'Timed Out' : `${Math.round(guess.distanceKm)} km away`}
                             </span>
@@ -228,6 +248,9 @@ export const MultiplayerRoundResults: React.FC = () => {
                             +{Math.round(guess.score)} pts
                           </span>
                           <div className="text-[10px] text-slate-400">
+                            {isTimeAttack && !guess.timedOut && (
+                              <span className="text-slate-400 mr-2">Base: {Math.round(baseScore)}</span>
+                            )}
                             Total: {playerStanding?.totalScore || 0} pts
                           </div>
                         </div>

@@ -88,3 +88,53 @@ export function getScoreRating(score: number): { title: string; color: string } 
   if (score >= 500) return { title: 'Wrong Region', color: 'text-orange-400' };
   return { title: 'Far Away', color: 'text-rose-400' };
 }
+
+export interface TimeAttackScoreResult {
+  baseScore: number;
+  elapsedTimeSeconds: number;
+  clampedTimeSeconds: number;
+  timeMultiplier: number;
+  finalScore: number;
+  hasPinnedLocation: boolean;
+}
+
+/**
+ * Calculates Time Attack score based on geographic distance and elapsed time.
+ * 
+ * Formula:
+ * multiplier = 1.5 - (t / 60), clamped to [1.0, 1.5] for t in [0, 30]
+ * finalScore = round(baseScore * timeMultiplier)
+ * 
+ * @param distanceKm Distance between guess and target in km (null if no guess placed)
+ * @param elapsedTimeSeconds Time elapsed in seconds (clamped to [0, 30])
+ * @param scaleFactor Point falloff scale factor (default 1491.6 for World)
+ * @param hasPinnedLocation Whether a location pin was placed
+ */
+export function calculateTimeAttackScore(
+  distanceKm: number | null,
+  elapsedTimeSeconds: number,
+  scaleFactor: number = 1491.6,
+  hasPinnedLocation: boolean = distanceKm !== null
+): TimeAttackScoreResult {
+  const clampedTimeSeconds = Math.max(0, Math.min(30, elapsedTimeSeconds));
+  
+  // Bounded multiplier formula: 1.5 - (t / 60)
+  const rawMultiplier = 1.5 - (clampedTimeSeconds / 60);
+  const timeMultiplier = Math.max(1.0, Math.min(1.5, rawMultiplier));
+
+  let baseScore = 0;
+  if (hasPinnedLocation && distanceKm !== null && !isNaN(distanceKm)) {
+    baseScore = calculateGeoScore(distanceKm, scaleFactor);
+  }
+
+  const finalScore = Math.round(baseScore * timeMultiplier);
+
+  return {
+    baseScore,
+    elapsedTimeSeconds,
+    clampedTimeSeconds,
+    timeMultiplier,
+    finalScore,
+    hasPinnedLocation
+  };
+}

@@ -11,14 +11,43 @@ import {
   RoundResult,
   GameType
 } from '../src/shared/types/multiplayer';
+import { AbstractBaseSession } from './baseSession';
 import { GameSessionManager } from './gameSession';
 import { DuelsSessionManager } from './duelsSession';
+import { StreakSessionManager } from './streakSession';
+import { TimeAttackSessionManager } from './timeAttackSession';
+import { getModeStrategy, validateRoomSettings } from '../src/game/modeRegistry';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 unambiguous characters
 
 export interface RoomWithSession extends Room {
-  gameSession?: GameSessionManager | DuelsSessionManager;
+  gameSession?: AbstractBaseSession;
 }
+
+export function toPublicRoom(room: RoomWithSession | Room): Room {
+  const { gameSession, ...publicRoom } = room as RoomWithSession;
+  return {
+    code: publicRoom.code,
+    hostPlayerId: publicRoom.hostPlayerId,
+    players: publicRoom.players.map(p => ({
+      id: p.id,
+      displayName: p.displayName,
+      isHost: p.isHost,
+      status: p.status,
+      joinedAt: p.joinedAt
+    })),
+    state: publicRoom.state,
+    settings: {
+      maxRounds: publicRoom.settings.maxRounds,
+      timeLimitSeconds: publicRoom.settings.timeLimitSeconds,
+      gameMode: publicRoom.settings.gameMode,
+      mapId: publicRoom.settings.mapId,
+      gameType: publicRoom.settings.gameType
+    },
+    createdAt: publicRoom.createdAt
+  };
+}
+
 
 export class RoomManager {
   private rooms: Map<string, RoomWithSession> = new Map();
@@ -49,61 +78,9 @@ export class RoomManager {
    * Validates and merges partial room settings.
    */
   public validateSettings(customSettings?: Partial<RoomSettings>): { valid: boolean; settings: RoomSettings; error?: string } {
-    const defaultSettings: RoomSettings = {
-      maxRounds: 5,
-      timeLimitSeconds: 0,
-      gameMode: 'normal',
-      mapId: 'world',
-      gameType: 'classic'
-    };
-
-    if (!customSettings) {
-      return { valid: true, settings: defaultSettings };
-    }
-
-    const merged: RoomSettings = { ...defaultSettings };
-
-    if (customSettings.gameType !== undefined) {
-      if (customSettings.gameType !== 'classic' && customSettings.gameType !== 'duels') {
-        return { valid: false, settings: defaultSettings, error: 'gameType must be either "classic" or "duels".' };
-      }
-      merged.gameType = customSettings.gameType;
-      if (merged.gameType === 'duels' && customSettings.maxRounds === undefined) {
-        merged.maxRounds = 20;
-      }
-    }
-
-    if (customSettings.maxRounds !== undefined) {
-      const maxAllowed = merged.gameType === 'duels' ? 20 : 10;
-      if (!Number.isInteger(customSettings.maxRounds) || customSettings.maxRounds < 1 || customSettings.maxRounds > maxAllowed) {
-        return { valid: false, settings: defaultSettings, error: `maxRounds must be an integer between 1 and ${maxAllowed}.` };
-      }
-      merged.maxRounds = customSettings.maxRounds;
-    }
-
-    if (customSettings.timeLimitSeconds !== undefined) {
-      if (!Number.isInteger(customSettings.timeLimitSeconds) || customSettings.timeLimitSeconds < 0 || customSettings.timeLimitSeconds > 300) {
-        return { valid: false, settings: defaultSettings, error: 'timeLimitSeconds must be an integer between 0 and 300 seconds.' };
-      }
-      merged.timeLimitSeconds = customSettings.timeLimitSeconds;
-    }
-
-    if (customSettings.gameMode !== undefined) {
-      if (customSettings.gameMode !== 'normal' && customSettings.gameMode !== 'pro') {
-        return { valid: false, settings: defaultSettings, error: 'gameMode must be either "normal" or "pro".' };
-      }
-      merged.gameMode = customSettings.gameMode;
-    }
-
-    if (customSettings.mapId !== undefined) {
-      if (typeof customSettings.mapId !== 'string' || customSettings.mapId.trim().length === 0) {
-        return { valid: false, settings: defaultSettings, error: 'mapId must be a non-empty string.' };
-      }
-      merged.mapId = customSettings.mapId.trim();
-    }
-
-    return { valid: true, settings: merged };
+    return validateRoomSettings(customSettings);
   }
+
 
   /**
    * Creates a new room with host player.
@@ -297,33 +274,93 @@ export class RoomManager {
       return { success: false, error: 'Game cannot be started in current state.' };
     }
 
-    if (room.settings.gameType === 'duels') {
-      if (room.players.length !== 2) {
-        return { success: false, error: 'Duels mode requires exactly 2 connected players.' };
+    const modeStrategy = getModeStrategy(room.settings.gameType);
+
+    if (modeStrategy.minPlayers === modeStrategy.maxPlayers) {
+      if (room.players.length !== modeStrategy.minPlayers) {
+        return { success: false, error: `${modeStrategy.name} mode requires exactly ${modeStrategy.minPlayers} connected players.` };
       }
-      const session = new DuelsSessionManager(
+    } else {
+      if (room.players.length < modeStrategy.minPlayers) {
+        return { success: false, error: `${modeStrategy.name} mode requires at least ${modeStrategy.minPlayers} connected player(s).` };
+      }
+
+      if (room.players.length > modeStrategy.maxPlayers) {
+        return { success: false, error: `${modeStrategy.name} mode allows at most ${modeStrategy.maxPlayers} players.` };
+      }
+    }
+
+    let session: AbstractBaseSession;
+
+    if (room.settings.gameType === 'time_attack') {
+      session = new TimeAttackSessionManager(
+        room.code,
+        room.settings.maxRounds,
+        30,
+        room.settings.gameMode,
+        room.settings.mapId
+      );
+    } else if (room.settings.gameType === 'duels') {
+      session = new DuelsSessionManager(
         room.code,
         room.settings.maxRounds,
         room.settings.timeLimitSeconds,
-        room.settings.gameMode
+        room.settings.gameMode,
+        room.settings.mapId
       );
-      const candidateSeed = session.initSession(room.players);
-      room.gameSession = session;
-      room.state = 'ROUND_LOADING';
-      return { success: true, room, candidateSeed };
+    } else if (room.settings.gameType === 'country_streak') {
+      session = new StreakSessionManager(
+        room.code,
+        room.settings.maxRounds,
+        room.settings.timeLimitSeconds,
+        room.settings.gameMode,
+        'world'
+      );
+    } else {
+      session = new GameSessionManager(
+        room.code,
+        room.settings.maxRounds,
+        room.settings.timeLimitSeconds,
+        room.settings.gameMode,
+        room.settings.mapId
+      );
     }
-
-    const session = new GameSessionManager(
-      room.code,
-      room.settings.maxRounds,
-      room.settings.timeLimitSeconds,
-      room.settings.gameMode
-    );
 
     const candidateSeed = session.initSession(room.players);
     room.gameSession = session;
     room.state = 'ROUND_LOADING';
 
+    return { success: true, room, candidateSeed };
+
+  }
+
+  /**
+   * Handles target resolution failure by selecting a new candidate seed up to a retry limit.
+   */
+  public handleTargetResolutionFailure(hostPlayerId: string, payload: TargetResolutionResult): {
+    success: boolean;
+    room?: RoomWithSession;
+    candidateSeed?: CandidateSeed;
+    error?: string;
+  } {
+    const code = this.playerToRoom.get(hostPlayerId);
+    if (!code) return { success: false, error: 'Player not in a room.' };
+
+    const room = this.rooms.get(code);
+    if (!room || !room.gameSession) return { success: false, error: 'Game session not active.' };
+
+    if (room.hostPlayerId !== hostPlayerId) {
+      return { success: false, error: 'Only the host can resolve targets.' };
+    }
+
+    room.gameSession.usedCandidateIds.add(payload.candidateId);
+    room.gameSession.resolutionAttempts = (room.gameSession.resolutionAttempts || 0) + 1;
+
+    if (room.gameSession.resolutionAttempts >= 3) {
+      return { success: false, room, error: 'Target resolution failed after maximum retry attempts.' };
+    }
+
+    const candidateSeed = room.gameSession.selectNextCandidateSeed();
     return { success: true, room, candidateSeed };
   }
 
@@ -364,7 +401,8 @@ export class RoomManager {
     playerId: string,
     roundIndex: number,
     latitude: number,
-    longitude: number
+    longitude: number,
+    countryCode?: string
   ): {
     success: boolean;
     room?: RoomWithSession;
@@ -387,7 +425,7 @@ export class RoomManager {
       return { success: false, error: 'Guess is for a different round.' };
     }
 
-    const res = room.gameSession.submitGuess(playerId, player.displayName, latitude, longitude);
+    const res = room.gameSession.submitGuess(playerId, player.displayName, latitude, longitude, countryCode);
     if (!res.success) {
       return { success: false, error: res.error };
     }
@@ -418,7 +456,7 @@ export class RoomManager {
     if (!room || !room.gameSession) return { success: false, error: 'Game session not active.' };
 
     const { session, roundResult } = room.gameSession.endRound(room.players);
-    room.state = 'ROUND_RESULTS';
+    room.state = session.roundState;
 
     return { success: true, room, session, roundResult };
   }
@@ -496,6 +534,13 @@ export class RoomManager {
    */
   public getRoomCount(): number {
     return this.rooms.size;
+  }
+
+  /**
+   * Converts a room (with internal session) to a clean, serializable public Room object.
+   */
+  public toPublicRoom(room: RoomWithSession | Room): Room {
+    return toPublicRoom(room);
   }
 }
 

@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
+import { GameModeRenderer } from './GameModeRenderer';
 import { RealPanoramaViewer } from '../panorama/RealPanoramaViewer';
 import { MockPanoramaViewer } from '../panorama/MockPanoramaViewer';
 import { MultiplayerGuessMap } from './MultiplayerGuessMap';
-import { MultiplayerRoundResults } from './MultiplayerRoundResults';
-import { MultiplayerFinalStandings } from './MultiplayerFinalStandings';
+import { MultiplayerStreakHUD } from './MultiplayerStreakHUD';
+import { MultiplayerTimeAttackHUD } from './MultiplayerTimeAttackHUD';
 import { Compass } from '../common/Compass';
-import { Clock, Shield, Users, MapPin, Heart, Swords, Flame } from 'lucide-react';
+import { Clock, Shield, Heart, Swords } from 'lucide-react';
 import { DuelPlayerState } from '../../shared/types/multiplayer';
+import { GameRules } from '../../types/game';
 
 export const MultiplayerGameScreen: React.FC = () => {
   const { gameSession, activeTarget, room, playerId } = useMultiplayer();
@@ -36,13 +38,9 @@ export const MultiplayerGameScreen: React.FC = () => {
 
   if (!gameSession) return null;
 
-  if (gameSession.roundState === 'ROUND_RESULTS') {
-    return <MultiplayerRoundResults />;
-  }
-
-  if (gameSession.roundState === 'GAME_FINISHED') {
-    return <MultiplayerFinalStandings />;
-  }
+  const multiplayerRules: GameRules = gameSession.gameMode === 'pro'
+    ? { movement: 'NO_MOVING', pan: 'NO_PAN', zoom: 'NO_ZOOM', timeLimitSeconds: gameSession.timeLimitSeconds || 0 }
+    : { movement: 'ALLOW_MOVING', pan: 'ALLOW_PAN', zoom: 'ALLOW_ZOOM', timeLimitSeconds: gameSession.timeLimitSeconds || 0 };
 
   const isDuels = gameSession.gameType === 'duels' && gameSession.duelState;
 
@@ -52,11 +50,15 @@ export const MultiplayerGameScreen: React.FC = () => {
     ? (Object.values(gameSession.duelState?.playerStates || {}) as DuelPlayerState[]).find(p => p.playerId !== playerId)
     : undefined;
 
-  return (
+  const activeRoundContent = (
     <div className="relative w-screen h-screen bg-slate-950 overflow-hidden select-none">
       
       {/* Top HUD Bar */}
-      {isDuels ? (
+      {gameSession.gameType === 'country_streak' ? (
+        <MultiplayerStreakHUD timeLeft={timeLeft} />
+      ) : gameSession.gameType === 'time_attack' ? (
+        <MultiplayerTimeAttackHUD timeLeft={timeLeft} />
+      ) : isDuels ? (
         /* DUELS HUD */
         <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
           {/* YOU CARD */}
@@ -180,23 +182,42 @@ export const MultiplayerGameScreen: React.FC = () => {
       )}
 
       {/* Main Panorama Canvas */}
-      <div className="w-full h-full">
-        {activeTarget?.panoId && apiKey ? (
-          <RealPanoramaViewer
-            apiKey={apiKey}
-            panoId={activeTarget.panoId}
-            initialHeading={activeTarget.initialHeading}
-            initialPitch={activeTarget.initialPitch}
-            className="w-full h-full"
-          />
+      <div className="w-full h-full bg-slate-950 flex items-center justify-center">
+        {apiKey ? (
+          activeTarget?.panoId ? (
+            <RealPanoramaViewer
+              apiKey={apiKey}
+              panoId={activeTarget.panoId}
+              initialHeading={activeTarget.initialHeading}
+              initialPitch={activeTarget.initialPitch}
+              rules={multiplayerRules}
+              className="w-full h-full"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-900/90 border border-red-900/50 rounded-2xl shadow-2xl backdrop-blur-md max-w-md">
+              <Shield className="w-12 h-12 text-rose-500 mb-4 opacity-80" />
+              <h2 className="text-xl font-black text-rose-100 mb-2 tracking-wide uppercase">Target Resolution Failed</h2>
+              <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                A valid Street View panorama could not be resolved for this round. Waiting for server recovery...
+              </p>
+            </div>
+          )
         ) : (
           <MockPanoramaViewer className="w-full h-full" />
         )}
       </div>
 
-      {/* Interactive Guess Map Overlay */}
-      <MultiplayerGuessMap />
+      {/* Interactive Guess Map Overlay (Only for coordinate-guessing modes) */}
+      {gameSession.gameType !== 'country_streak' && <MultiplayerGuessMap />}
 
     </div>
   );
+
+  return (
+    <GameModeRenderer
+      session={gameSession}
+      activeRoundComponent={activeRoundContent}
+    />
+  );
 };
+

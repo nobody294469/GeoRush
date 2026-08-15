@@ -21,6 +21,31 @@ export const CLASSIC_MODE: GameModeDefinition = {
   calculateScore: calculateGeoScore
 };
 
-export const GAME_MODE_DEFINITIONS: Record<string, GameModeDefinition> = {
-  classic: CLASSIC_MODE
+export const STREAK_MODE: GameModeDefinition = {
+  id: 'country_streak',
+  name: 'Country Streak',
+  description: 'Identify the country of global Street View panoramas to build a streak',
+  defaultMaxRounds: 100,
+  defaultMap: WORLD_MAP,
+  calculateDistance: calculateHaversineDistance,
+  calculateScore: (_distanceKm) => 0
 };
+
+export const TIME_ATTACK_MODE: GameModeDefinition = {
+  id: 'time_attack',
+  name: 'Time Attack',
+  description: '5 rounds with 30-second countdowns where speed multiplies your geographic score',
+  defaultMaxRounds: 5,
+  defaultMap: WORLD_MAP,
+  calculateDistance: calculateHaversineDistance,
+  calculateScore: calculateGeoScore
+};
+
+export const GAME_MODE_DEFINITIONS: Record<string, GameModeDefinition> = {
+  classic: CLASSIC_MODE,
+  country_streak: STREAK_MODE,
+  time_attack: TIME_ATTACK_MODE
+};
+
+export * from './modeRegistry';
+

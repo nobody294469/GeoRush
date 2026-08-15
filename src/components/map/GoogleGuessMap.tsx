@@ -45,9 +45,8 @@ export const GoogleGuessMap: React.FC<GoogleGuessMapProps> = ({ apiKey, isExpand
             style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
             position: google.maps.ControlPosition.TOP_LEFT,
             mapTypeIds: [
-              google.maps.MapTypeId.HYBRID,
               google.maps.MapTypeId.ROADMAP,
-              google.maps.MapTypeId.SATELLITE
+              google.maps.MapTypeId.HYBRID
             ]
           },
           zoomControl: true,

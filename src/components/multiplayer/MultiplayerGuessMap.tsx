@@ -70,9 +70,8 @@ export const MultiplayerGuessMap: React.FC = () => {
               style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
               position: google.maps.ControlPosition.TOP_LEFT,
               mapTypeIds: [
-                google.maps.MapTypeId.HYBRID,
                 google.maps.MapTypeId.ROADMAP,
-                google.maps.MapTypeId.SATELLITE
+                google.maps.MapTypeId.HYBRID
               ]
             },
             zoomControl: true,
@@ -205,6 +204,53 @@ export const MultiplayerGuessMap: React.FC = () => {
     }
   }, [isExpanded]);
 
+  const hasAutoSubmittedRef = useRef(false);
+
+  // Reset selected pin and auto-submit flag on round change
+  useEffect(() => {
+    setSelectedPin(null);
+    hasAutoSubmittedRef.current = false;
+  }, [gameSession?.currentRound, gameSession?.roundStartedAt]);
+
+  // Timeout auto-submit: if timer expires and player has a pin selected but hasn't submitted
+  useEffect(() => {
+    if (
+      !gameSession?.roundEndsAt ||
+      gameSession.roundState !== 'ROUND_ACTIVE' ||
+      hasSubmittedGuess ||
+      !selectedPin ||
+      hasAutoSubmittedRef.current
+    ) {
+      return;
+    }
+
+    const checkTimeout = () => {
+      const remainingMs = gameSession.roundEndsAt! - Date.now();
+      if (
+        remainingMs <= 0 &&
+        !hasAutoSubmittedRef.current &&
+        !hasSubmittedGuess &&
+        selectedPin &&
+        gameSession.roundState === 'ROUND_ACTIVE'
+      ) {
+        hasAutoSubmittedRef.current = true;
+        submitGuess(selectedPin.lat, selectedPin.lng).catch(err => {
+          console.error('Error auto-submitting guess on timeout:', err);
+        });
+      }
+    };
+
+    checkTimeout();
+    const interval = setInterval(checkTimeout, 200);
+    return () => clearInterval(interval);
+  }, [
+    gameSession?.roundEndsAt,
+    gameSession?.roundState,
+    hasSubmittedGuess,
+    selectedPin,
+    submitGuess
+  ]);
+
   const handleSubmit = async () => {
     if (!selectedPin || isSubmitting || hasSubmittedGuess) return;
     setIsSubmitting(true);
@@ -234,8 +280,9 @@ export const MultiplayerGuessMap: React.FC = () => {
           : 'w-72 h-64 sm:w-80 sm:h-72'
       }`}
     >
-      {/* Map Container */}
-      <div ref={mapContainerRef} className="w-full h-full relative cursor-crosshair">
+      {/* Map Container Wrapper */}
+      <div className="w-full flex-1 relative cursor-crosshair">
+        <div ref={mapContainerRef} className="absolute inset-0 z-0" />
         
         {/* Toggle Expand Button */}
         <button

@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameMode, TimeLimitRule, GAME_MODE_PRESETS } from '../../types/game';
-import { Play, Activity, Clock, Compass, Flame, AlertCircle, X, Users } from 'lucide-react';
+import { Play, Activity, Clock, Compass, Flame, AlertCircle, X, Users, Map as MapIcon, ChevronDown } from 'lucide-react';
+import { MapRegistry } from '../../game/mapRegistry';
 import { MultiplayerConnectModal } from '../multiplayer/MultiplayerConnectModal';
 
 export const StartScreen: React.FC = () => {
   const { startGame, toggleTelemetry, telemetry, settings, isLoadingLocations, locationError, clearLocationError } = useGame();
+  
+  const [gameType, setGameType] = useState<'classic' | 'country_streak' | 'time_attack'>('classic');
+  const [selectedMapId, setSelectedMapId] = useState<string>(settings.mapId || 'world');
+  const maps = MapRegistry.getInstance().getAllMaps();
 
   const [selectedMode, setSelectedMode] = useState<GameMode>(settings.gameMode || 'normal');
   const [timeLimit, setTimeLimit] = useState<TimeLimitRule>(settings.rules.timeLimitSeconds);
@@ -16,16 +21,18 @@ export const StartScreen: React.FC = () => {
     const preset = GAME_MODE_PRESETS[selectedMode];
     startGame({
       gameMode: selectedMode,
+      modeId: gameType,
+      mapId: gameType === 'country_streak' ? 'world' : selectedMapId,
+      maxRounds: gameType === 'country_streak' ? 100 : 5,
       rules: {
         ...preset,
-        timeLimitSeconds: timeLimit
+        timeLimitSeconds: gameType === 'time_attack' ? 30 : timeLimit
       }
     });
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      
       {/* Background Subtle Grid Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60 pointer-events-none" />
 
@@ -72,6 +79,115 @@ export const StartScreen: React.FC = () => {
         {/* Game Mode Selector Box */}
         <div className="p-6 bg-white border border-slate-200/90 rounded-3xl space-y-6 text-left shadow-xl">
           
+          {/* Game Type Selection (Classic vs Time Attack vs Country Streak) */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+              <Compass className="w-4 h-4 text-teal-600" /> GAME TYPE
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setGameType('classic')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  gameType === 'classic'
+                    ? 'bg-teal-50 border-teal-500 shadow-sm ring-2 ring-teal-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <p className={`font-black text-xs uppercase tracking-wide ${
+                  gameType === 'classic' ? 'text-teal-900' : 'text-slate-700'
+                }`}>
+                  📍 CLASSIC MODE
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  Standard geographic scoring
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGameType('time_attack')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  gameType === 'time_attack'
+                    ? 'bg-sky-50 border-sky-500 shadow-sm ring-2 ring-sky-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <p className={`font-black text-xs uppercase tracking-wide flex items-center gap-1 ${
+                  gameType === 'time_attack' ? 'text-sky-900' : 'text-slate-700'
+                }`}>
+                  <Clock className="w-3.5 h-3.5 text-sky-600" /> TIME ATTACK
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  30s timer with 1.0x-1.5x speed multiplier
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setGameType('country_streak');
+                  setSelectedMapId('world');
+                }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  gameType === 'country_streak'
+                    ? 'bg-amber-50 border-amber-500 shadow-sm ring-2 ring-amber-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <p className={`font-black text-xs uppercase tracking-wide flex items-center gap-1 ${
+                  gameType === 'country_streak' ? 'text-amber-900' : 'text-slate-700'
+                }`}>
+                  <Flame className="w-3.5 h-3.5 text-amber-600" /> COUNTRY STREAK
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  Identify countries for a streak
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* Map Selection */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <MapIcon className="w-4 h-4 text-teal-600" /> MAP
+              </label>
+              {gameType === 'country_streak' && (
+                <span className="text-[11px] font-mono text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  WORLD MAP REQUIRED
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <select
+                value={gameType === 'country_streak' ? 'world' : selectedMapId}
+                onChange={(e) => setSelectedMapId(e.target.value)}
+                disabled={gameType === 'country_streak'}
+                className={`w-full appearance-none border text-slate-700 py-3 px-4 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
+                  gameType === 'country_streak'
+                    ? 'bg-slate-100 border-slate-300 cursor-not-allowed text-slate-500'
+                    : 'bg-slate-50 border-slate-200 cursor-pointer'
+                }`}
+              >
+                {maps.map(map => (
+                  <option key={map.id} value={map.id}>
+                    {map.id === 'world' ? '🌍 ' : ''}
+                    {map.id === 'india' ? '🇮🇳 ' : ''}
+                    {map.id === 'asia' ? '🌏 ' : ''}
+                    {map.id === 'europe' ? '🇪🇺 ' : ''}
+                    {map.id === 'north_america' ? '🌎 ' : ''}
+                    {map.id === 'south_america' ? '🌎 ' : ''}
+                    {map.id === 'africa' ? '🌍 ' : ''}
+                    {map.id === 'oceania' ? '🌏 ' : ''}
+                    {map.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
           {/* Game Mode Selection */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -143,9 +259,16 @@ export const StartScreen: React.FC = () => {
 
           {/* Time Limit Selection */}
           <div className="space-y-3 pt-2 border-t border-slate-100">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-              <Clock className="w-4 h-4 text-teal-600" /> ROUND TIME LIMIT
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <Clock className="w-4 h-4 text-teal-600" /> ROUND TIME LIMIT
+              </label>
+              {gameType === 'time_attack' && (
+                <span className="text-[11px] font-mono text-sky-800 font-bold bg-sky-50 px-2.5 py-0.5 rounded border border-sky-200">
+                  FIXED 30S COUNTDOWN (1.0x - 1.5x MULTIPLIER)
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-5 gap-2">
               {([
@@ -158,11 +281,16 @@ export const StartScreen: React.FC = () => {
                 <button
                   key={option.value}
                   type="button"
+                  disabled={gameType === 'time_attack'}
                   onClick={() => setTimeLimit(option.value as TimeLimitRule)}
-                  className={`py-2 px-1 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer text-center ${
-                    timeLimit === option.value
-                      ? 'bg-teal-600 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                  className={`py-2 px-1 rounded-xl text-xs font-bold font-mono transition-all text-center ${
+                    gameType === 'time_attack'
+                      ? option.value === 30
+                        ? 'bg-sky-600 text-white shadow-sm font-black'
+                        : 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed'
+                      : timeLimit === option.value
+                      ? 'bg-teal-600 text-white shadow-sm cursor-pointer'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:text-slate-900 cursor-pointer'
                   }`}
                 >
                   {option.label}

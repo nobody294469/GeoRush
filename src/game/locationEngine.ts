@@ -39,7 +39,7 @@ export async function resolveSessionLocations(
   const resolvedList: Location[] = [];
   const sessionPanoIds = new Set<string>();
   let attempts = 0;
-  const maxAttempts = count * 4;
+  const maxAttempts = count * 20;
 
   while (resolvedList.length < count && attempts < maxAttempts) {
     attempts++;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
-import { Trophy, Crown, RefreshCw, LogOut, Award, Star, Swords, Heart, ShieldAlert } from 'lucide-react';
+import { Trophy, Crown, RefreshCw, LogOut, Award, Star, Swords, Heart, ShieldAlert, Zap } from 'lucide-react';
 import { DuelRoundResult, DuelPlayerState } from '../../shared/types/multiplayer';
 
 export const MultiplayerFinalStandings: React.FC = () => {
@@ -178,19 +178,21 @@ export const MultiplayerFinalStandings: React.FC = () => {
             </div>
           </>
         ) : (
-          /* CLASSIC FINAL SCREEN */
+          /* CLASSIC / TIME ATTACK FINAL SCREEN */
           <>
             {/* Winner Banner */}
             <div className="space-y-3">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-500/40 text-amber-400 mb-2 animate-bounce">
-                <Trophy className="w-8 h-8" />
+                {gameSession.gameType === 'time_attack' ? <Zap className="w-8 h-8 fill-amber-400" /> : <Trophy className="w-8 h-8" />}
               </div>
-              <span className="text-xs font-extrabold tracking-widest text-amber-400 uppercase">Match Complete</span>
+              <span className="text-xs font-extrabold tracking-widest text-amber-400 uppercase">
+                {gameSession.gameType === 'time_attack' ? '⚡ Time Attack Complete' : 'Match Complete'}
+              </span>
               <h1 className="text-3xl sm:text-4xl font-black text-white">
                 {classicWinner ? `${classicWinner.displayName} Wins!` : 'Game Over'}
               </h1>
               <p className="text-sm text-slate-400">
-                Final standings after {gameSession.maxRounds} rounds
+                Final standings after {gameSession.maxRounds} {gameSession.gameType === 'time_attack' ? 'speed' : ''} rounds
               </p>
             </div>
 

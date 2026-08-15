@@ -18,7 +18,7 @@ export type RoomState =
   | 'GAME_FINISHED'
   | 'CANCELLED';
 
-export type GameType = 'classic' | 'duels';
+export type GameType = 'classic' | 'duels' | 'country_streak' | 'time_attack';
 
 export interface RoomSettings {
   maxRounds: number;
@@ -59,16 +59,19 @@ export interface CandidateSeed {
   heading?: number;
   pitch?: number;
   country: string;
+  countryCode?: string;
   locationName?: string;
 }
 
 export interface TargetResolutionResult {
   roundIndex: number;
   candidateId: string;
+  apiMode?: 'REAL' | 'MOCK';
   panoId?: string;
   resolvedLat?: number;
   resolvedLng?: number;
   country?: string;
+  countryCode?: string;
   locationName?: string;
   heading?: number;
   pitch?: number;
@@ -85,6 +88,12 @@ export interface PlayerGuess {
   score: number;
   submittedAt: number;
   timedOut?: boolean;
+  guessedCountryCode?: string;
+  guessedCountryName?: string;
+  isCorrectCountry?: boolean;
+  baseScore?: number;
+  timeMultiplier?: number;
+  hasPinnedLocation?: boolean;
 }
 
 export interface TargetLocationDetails {
@@ -133,12 +142,29 @@ export interface DuelState {
   lastRoundResult?: DuelRoundResult;
 }
 
+export interface StreakPlayerState {
+  playerId: string;
+  displayName: string;
+  streak: number;
+  isEliminated: boolean;
+  eliminatedInRound?: number;
+}
+
+export interface StreakState {
+  playerStates: Record<string, StreakPlayerState>;
+  matchFinished: boolean;
+  winnerPlayerId: string | null;
+  isDraw: boolean;
+  endReason?: 'LAST_SURVIVOR' | 'SAFETY_CAP' | 'ALL_ELIMINATED';
+}
+
 export interface MultiplayerGameSession {
   roomCode: string;
   currentRound: number;
   maxRounds: number;
   timeLimitSeconds: number;
   gameMode: 'normal' | 'pro';
+  mapId?: string;
   gameType?: GameType;
   roundState: RoomState;
   activeTarget?: ActiveRoundTarget;
@@ -148,6 +174,7 @@ export interface MultiplayerGameSession {
   roundResults: RoundResult[];
   standings: PlayerScoreSummary[];
   duelState?: DuelState;
+  streakState?: StreakState;
 }
 
 export interface ClientToServerEvents {
@@ -174,7 +201,7 @@ export interface ClientToServerEvents {
     callback?: (response: RoomActionResponse) => void
   ) => void;
   'game:submit_guess': (
-    payload: { roundIndex: number; latitude: number; longitude: number },
+    payload: { roundIndex: number; latitude: number; longitude: number; countryCode?: string },
     callback: (response: { success: boolean; distanceKm?: number; score?: number; error?: string }) => void
   ) => void;
   'game:next_round': (

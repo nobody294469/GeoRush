@@ -116,6 +116,15 @@ export const MasterResultMap: React.FC = () => {
           zoom: 2,
           disableDefaultUI: false,
           zoomControl: true,
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: google.maps.ControlPosition.TOP_LEFT,
+            mapTypeIds: [
+              google.maps.MapTypeId.ROADMAP,
+              google.maps.MapTypeId.HYBRID
+            ]
+          },
           styles: [] // Standard clean light Google Maps style
         });
       }

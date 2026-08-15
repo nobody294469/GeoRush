@@ -14,6 +14,7 @@ import { WORLD_MAP, MAP_PRESETS, MapDefinition } from '../game/maps';
 import { CLASSIC_MODE, GAME_MODE_DEFINITIONS, GameModeDefinition } from '../game/modes';
 import { DEFAULT_RULES } from '../game/rulesets';
 import { resolveSessionLocations } from '../game/locationEngine';
+import { calculateTimeAttackScore } from '../utils/scoring';
 
 interface GameContextType {
   gameStatus: GameStatus;
@@ -34,6 +35,15 @@ interface GameContextType {
   isTelemetryOpen: boolean;
   activeMap: MapDefinition;
   activeMode: GameModeDefinition;
+  streak: number;
+  bestStreak: number;
+  streakResult: {
+    isCorrect: boolean;
+    targetCountry: string;
+    targetCountryCode: string;
+    guessedCountry: string;
+    guessedCountryCode: string;
+  } | null;
   
   // Action Handlers
   startGame: (customSettings?: Partial<GameSettings>) => void;
@@ -41,7 +51,9 @@ interface GameContextType {
   placeGuess: (lat: number, lng: number) => void;
   clearGuess: () => void;
   submitGuess: () => void;
+  submitCountryGuess: (code: string, name: string) => void;
   nextRound: () => void;
+  nextStreakRound: () => void;
   restartGame: () => void;
   resetPOV: () => void;
   resetPovCount: number;
@@ -81,6 +93,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [telemetry, setTelemetry] = useState<TelemetryData>(devTelemetry.getSnapshot());
   const [isTelemetryOpen, setIsTelemetryOpen] = useState<boolean>(false);
 
+  const [streak, setStreak] = useState<number>(0);
+  const [bestStreak, setBestStreak] = useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem('country_streak_best') || '0', 10) || 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [streakResult, setStreakResult] = useState<{
+    isCorrect: boolean;
+    targetCountry: string;
+    targetCountryCode: string;
+    guessedCountry: string;
+    guessedCountryCode: string;
+  } | null>(null);
+
   const isSubmittingRef = useRef<boolean>(false);
   const usedCandidateIdsRef = useRef<Set<string>>(new Set());
 
@@ -111,6 +139,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...customSettings,
       rules: { ...defaultRules, ...customSettings?.rules }
     };
+
+    if (newSettings.modeId === 'country_streak') {
+      newSettings.mapId = 'world';
+      setStreak(0);
+      setStreakResult(null);
+    } else if (newSettings.modeId === 'time_attack') {
+      newSettings.maxRounds = 5;
+      newSettings.rules.timeLimitSeconds = 30;
+    }
+
     setSettings(newSettings);
     setIsLoadingLocations(true);
     setLocationError(null);
@@ -120,7 +158,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const sessionResult = await resolveSessionLocations({
       map: mapToUse,
-      count: newSettings.maxRounds,
+      count: newSettings.modeId === 'country_streak' ? 1 : newSettings.maxRounds,
       usedCandidateIds: usedCandidateIdsRef.current,
       apiMode: telemetry.apiMode,
       apiKey,
@@ -152,9 +190,91 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setRoundStartTime(Date.now());
-    setTimeRemaining(newSettings.rules.timeLimitSeconds > 0 ? newSettings.rules.timeLimitSeconds : null);
+    const initialTimeLimit = newSettings.modeId === 'time_attack'
+      ? 30
+      : (newSettings.rules.timeLimitSeconds > 0 ? newSettings.rules.timeLimitSeconds : null);
+    setTimeRemaining(initialTimeLimit);
     setGameStatus('PLAYING');
   }, [telemetry.apiMode]);
+
+  // Single player Country Streak guess submission
+  const submitCountryGuess = useCallback((code: string, name: string) => {
+    if (isSubmittingRef.current || gameStatus !== 'PLAYING' || !currentLocation) return;
+    isSubmittingRef.current = true;
+
+    const targetCode = (currentLocation.countryCode || '').toUpperCase();
+    const targetCountry = currentLocation.country || 'Unknown';
+    const userCode = code.toUpperCase();
+
+    const isCorrect = userCode.length > 0 && userCode === targetCode;
+
+    let newStreak = streak;
+    if (isCorrect) {
+      newStreak = streak + 1;
+      setStreak(newStreak);
+      if (newStreak > bestStreak) {
+        setBestStreak(newStreak);
+        try {
+          localStorage.setItem('country_streak_best', newStreak.toString());
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    setStreakResult({
+      isCorrect,
+      targetCountry,
+      targetCountryCode: targetCode,
+      guessedCountry: name,
+      guessedCountryCode: userCode
+    });
+
+    setGameStatus('ROUND_RESULT');
+    setIsStreetViewReady(false);
+  }, [currentLocation, gameStatus, streak, bestStreak]);
+
+  // Single player Country Streak next round transition
+  const nextStreakRound = useCallback(async () => {
+    if (!streakResult) return;
+
+    if (streakResult.isCorrect && streak < 100) {
+      setIsLoadingLocations(true);
+      setLocationError(null);
+
+      const mapToUse = WORLD_MAP;
+      const apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+
+      const sessionResult = await resolveSessionLocations({
+        map: mapToUse,
+        count: 1,
+        usedCandidateIds: usedCandidateIdsRef.current,
+        apiMode: telemetry.apiMode,
+        apiKey,
+        mockLocations: MOCK_LOCATIONS
+      });
+
+      if (sessionResult.error || sessionResult.locations.length === 0) {
+        setLocationError(sessionResult.error || 'Failed to resolve next location.');
+        setIsLoadingLocations(false);
+        setGameStatus('GAME_FINISHED');
+        return;
+      }
+
+      const nextLoc = sessionResult.locations[0];
+      setLocations(prev => [...prev, nextLoc]);
+      setCurrentRoundIndex(prev => prev + 1);
+      setCurrentNodeId(nextLoc.initialNodeId);
+      setSelectedGuess(null);
+      setIsStreetViewReady(false);
+      isSubmittingRef.current = false;
+      setIsLoadingLocations(false);
+      setStreakResult(null);
+      setGameStatus('PLAYING');
+    } else {
+      setGameStatus('GAME_FINISHED');
+    }
+  }, [streakResult, streak, telemetry.apiMode]);
 
   // Update game rules from options/start screen
   const updateRules = useCallback((newRules: Partial<GameRules>) => {
@@ -201,7 +321,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSubmittingRef.current || gameStatus !== 'PLAYING' || !currentLocation || !currentNode) return;
     isSubmittingRef.current = true;
 
-    const timeTaken = Math.round((Date.now() - roundStartTime) / 1000);
+    const elapsedMs = Math.max(0, Date.now() - roundStartTime);
+    const elapsedTimeSeconds = elapsedMs / 1000;
+    const timeTaken = Math.round(elapsedTimeSeconds);
     
     // If no pin placed (e.g. timeout), give 0 points with max distance
     const guessToUse = selectedGuess || { lat: 0, lng: 0 };
@@ -209,7 +331,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? activeMode.calculateDistance(currentNode.lat, currentNode.lng, guessToUse.lat, guessToUse.lng)
       : 20000;
     
-    const score = selectedGuess ? activeMode.calculateScore(distanceKm, activeMap.scaleFactor) : 0;
+    let score = 0;
+    let baseScore: number | undefined;
+    let timeMultiplier: number | undefined;
+    let hasPinnedLocation: boolean | undefined;
+
+    if (settings.modeId === 'time_attack') {
+      const taResult = calculateTimeAttackScore(
+        selectedGuess ? distanceKm : null,
+        elapsedTimeSeconds,
+        activeMap.scaleFactor,
+        !!selectedGuess
+      );
+      score = taResult.finalScore;
+      baseScore = taResult.baseScore;
+      timeMultiplier = taResult.timeMultiplier;
+      hasPinnedLocation = taResult.hasPinnedLocation;
+    } else {
+      score = selectedGuess ? activeMode.calculateScore(distanceKm, activeMap.scaleFactor) : 0;
+    }
 
     const result: RoundResult = {
       roundNumber: currentRoundIndex + 1,
@@ -222,17 +362,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       distanceKm,
       score,
-      timeTakenSeconds: timeTaken
+      timeTakenSeconds: timeTaken,
+      baseScore,
+      timeMultiplier,
+      hasPinnedLocation
     };
 
     setResults(prev => [...prev, result]);
     setGameStatus('ROUND_RESULT');
     setIsStreetViewReady(false);
-  }, [selectedGuess, currentLocation, currentNode, roundStartTime, currentRoundIndex, gameStatus]);
+  }, [selectedGuess, currentLocation, currentNode, roundStartTime, currentRoundIndex, gameStatus, settings.modeId, activeMode, activeMap]);
 
   // Timer countdown effect (paused while StreetView is loading or in non-PLAYING state)
   useEffect(() => {
-    if (gameStatus !== 'PLAYING' || !isStreetViewReady || !settings.rules.timeLimitSeconds) {
+    const effectiveTimeLimit = settings.modeId === 'time_attack' ? 30 : settings.rules.timeLimitSeconds;
+    if (gameStatus !== 'PLAYING' || !isStreetViewReady || !effectiveTimeLimit || effectiveTimeLimit <= 0) {
       return;
     }
 
@@ -252,7 +396,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameStatus, isStreetViewReady, settings.rules.timeLimitSeconds, submitGuess]);
+  }, [gameStatus, isStreetViewReady, settings.modeId, settings.rules.timeLimitSeconds, submitGuess]);
 
   // Next round transition
   const nextRound = useCallback(() => {
@@ -269,12 +413,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsStreetViewReady(false);
       isSubmittingRef.current = false;
       setRoundStartTime(Date.now());
-      setTimeRemaining(settings.rules.timeLimitSeconds > 0 ? settings.rules.timeLimitSeconds : null);
+      const limit = settings.modeId === 'time_attack' 
+        ? 30 
+        : (settings.rules.timeLimitSeconds > 0 ? settings.rules.timeLimitSeconds : null);
+      setTimeRemaining(limit);
       setGameStatus('PLAYING');
     } else {
       setGameStatus('GAME_FINISHED');
     }
-  }, [currentRoundIndex, settings.maxRounds, locations, settings.rules.timeLimitSeconds]);
+  }, [currentRoundIndex, settings.maxRounds, locations, settings.rules.timeLimitSeconds, settings.modeId]);
 
   const restartGame = useCallback(() => {
     setGameStatus('IDLE');
@@ -282,6 +429,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsStreetViewReady(false);
     isSubmittingRef.current = false;
     setResults([]);
+    setTimeRemaining(null);
   }, []);
 
   const toggleTelemetry = useCallback((open?: boolean) => {
@@ -309,12 +457,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isTelemetryOpen,
         activeMap,
         activeMode,
+        streak,
+        bestStreak,
+        streakResult,
         startGame,
         moveToNode,
         placeGuess,
         clearGuess,
         submitGuess,
+        submitCountryGuess,
         nextRound,
+        nextStreakRound,
         restartGame,
         resetPOV,
         resetPovCount,

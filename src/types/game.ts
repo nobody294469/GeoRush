@@ -75,6 +75,9 @@ export interface RoundResult {
   distanceKm: number;
   score: number;
   timeTakenSeconds: number;
+  baseScore?: number;
+  timeMultiplier?: number;
+  hasPinnedLocation?: boolean;
 }
 
 export type GameStatus = 
