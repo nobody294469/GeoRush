@@ -49,9 +49,24 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  const server = httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🌍 Server running on http://0.0.0.0:${PORT}`);
   });
+
+  const shutdown = () => {
+    try {
+      io.close();
+      server.close(() => {
+        process.exit(0);
+      });
+      setTimeout(() => process.exit(0), 1000).unref();
+    } catch {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 startServer().catch((err) => {

@@ -2,9 +2,85 @@ import { TelemetryData } from '../types/game';
 
 type TelemetryListener = (data: TelemetryData) => void;
 
+/**
+ * Basic structural validation for Google Maps API keys:
+ * - Must be a non-empty string of reasonable length (>= 20 chars)
+ * - Standard Google API keys start with 'AIzaSy'
+ * - Not a generic placeholder
+ */
+export function isUsableGoogleMapsKey(key?: string | null): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const trimmed = key.trim();
+  if (trimmed.length < 20) return false;
+  if (!trimmed.startsWith('AIzaSy')) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes('placeholder') ||
+    lower.includes('your_api_key') ||
+    lower.includes('dummy') ||
+    lower.includes('fake')
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Determines the initial API mode automatically from the environment.
+ * 
+ * Rules:
+ * 1. If VITE_MOCK_STREETVIEW === 'true' -> 'MOCK'
+ * 2. If no usable Google Maps API key is present -> 'MOCK'
+ * 3. Otherwise -> 'REAL'
+ */
+export function getInitialApiMode(
+  customApiKey?: string,
+  customMockEnv?: string
+): 'REAL' | 'MOCK' {
+  let apiKey: string = '';
+  if (customApiKey !== undefined) {
+    apiKey = customApiKey;
+  } else {
+    try {
+      apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+    } catch {
+      apiKey = '';
+    }
+    if (!apiKey && typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
+    }
+  }
+
+  let mockEnv: string = '';
+  if (customMockEnv !== undefined) {
+    mockEnv = customMockEnv;
+  } else {
+    try {
+      mockEnv = (import.meta as any).env?.VITE_MOCK_STREETVIEW || '';
+    } catch {
+      mockEnv = '';
+    }
+    if (!mockEnv && typeof process !== 'undefined' && process.env) {
+      mockEnv = process.env.VITE_MOCK_STREETVIEW || '';
+    }
+  }
+
+  if (mockEnv === 'true') {
+    return 'MOCK';
+  }
+
+  if (!isUsableGoogleMapsKey(apiKey)) {
+    return 'MOCK';
+  }
+
+  return 'REAL';
+}
+
 class DevelopmentTelemetryStore {
   private data: TelemetryData = {
-    apiMode: 'MOCK',
+    apiMode: getInitialApiMode(),
     mapsJsInits: 0,
     panoramaInstances: 0,
     mapInstances: 0,
@@ -23,7 +99,7 @@ class DevelopmentTelemetryStore {
   private logs: { timestamp: string; event: string; detail?: string }[] = [];
 
   constructor() {
-    this.addLog('Telemetry Initialized in MOCK Mode (0 API Usage)');
+    this.addLog(`Telemetry Initialized in ${this.data.apiMode} Mode`);
     if (typeof window !== 'undefined') {
       this.timer = window.setInterval(() => {
         this.data.sessionDurationSeconds += 1;

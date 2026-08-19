@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
-import { Globe, Activity, RotateCcw, Trophy, Clock, Lock } from 'lucide-react';
+import { useAudio } from '../../hooks/useAudio';
+import { Globe, RotateCcw, Trophy, Clock, Lock, Volume2, VolumeX } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { 
@@ -10,10 +11,10 @@ export const Navbar: React.FC = () => {
     totalScore, 
     timeRemaining,
     isStreetViewReady,
-    toggleTelemetry, 
-    telemetry,
     restartGame 
   } = useGame();
+
+  const { soundEnabled, toggleSound } = useAudio();
 
   const rules = settings.rules;
 
@@ -37,7 +38,7 @@ export const Navbar: React.FC = () => {
         </div>
         <div>
           <h1 className="text-base font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-            GeoWorld <span className="text-teal-600">Explorer</span>
+            Geo<span className="text-teal-600">Rush</span>
           </h1>
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono tracking-wide">
             {settings.gameMode === 'pro' || (rules.movement === 'NO_MOVING' && rules.pan === 'NO_PAN' && rules.zoom === 'NO_ZOOM') ? (
@@ -88,17 +89,24 @@ export const Navbar: React.FC = () => {
         </div>
       )}
 
-      {/* Right: Telemetry & Controls */}
-      <div className="flex items-center gap-3">
-        {/* Telemetry Indicator Button (Minimal) */}
+      {/* Right: Sound & Controls */}
+      <div className="flex items-center gap-2.5">
+        {/* Master Sound Toggle */}
         <button
-          onClick={() => toggleTelemetry(true)}
-          className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-600 hover:text-slate-900 text-xs font-mono flex items-center gap-2 transition-all cursor-pointer"
-          title="Open Google Maps Development Telemetry"
+          onClick={toggleSound}
+          className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+            soundEnabled
+              ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 hover:text-teal-700'
+              : 'bg-slate-100/60 hover:bg-slate-200/80 border-slate-200 text-slate-400'
+          }`}
+          title={soundEnabled ? 'Mute Game Sound' : 'Enable Game Sound'}
+          aria-label={soundEnabled ? 'Mute Game Sound' : 'Enable Game Sound'}
         >
-          <span className="w-2 h-2 rounded-full bg-teal-500" />
-          <Activity className="w-3.5 h-3.5 text-teal-600" />
-          <span className="hidden sm:inline font-semibold">Telemetry</span>
+          {soundEnabled ? (
+            <Volume2 className="w-4 h-4 text-teal-600" />
+          ) : (
+            <VolumeX className="w-4 h-4 text-slate-400" />
+          )}
         </button>
 
         {/* Exit / Reset Game button */}

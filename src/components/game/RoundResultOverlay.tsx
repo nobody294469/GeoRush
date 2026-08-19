@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { formatDistance, getScoreRating } from '../../utils/scoring';
 import { AnimatedScore } from '../common/AnimatedScore';
 import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
+import { playSound } from '../../utils/audioSystem';
 import { MapPin, ArrowRight, Clock, Zap } from 'lucide-react';
 
 export const RoundResultOverlay: React.FC = () => {
@@ -26,6 +27,14 @@ export const RoundResultOverlay: React.FC = () => {
 
   const { title: ratingTitle } = getScoreRating(currentResult.score);
   const isLastRound = currentRoundIndex >= settings.maxRounds - 1;
+
+  useEffect(() => {
+    if (tier === 'master' || currentResult.score >= 4000) {
+      playSound('excellent');
+    } else {
+      playSound('score');
+    }
+  }, [currentResult]);
 
   return (
     <div className="absolute inset-x-0 top-6 z-40 flex justify-center pointer-events-none px-4">

@@ -15,6 +15,14 @@ import { CLASSIC_MODE, GAME_MODE_DEFINITIONS, GameModeDefinition } from '../game
 import { DEFAULT_RULES } from '../game/rulesets';
 import { resolveSessionLocations } from '../game/locationEngine';
 import { calculateTimeAttackScore } from '../utils/scoring';
+import { 
+  getPlayerName, 
+  setPlayerName as savePlayerNameToStorage, 
+  recordCompletedMatch, 
+  getPlayerStats, 
+  PersonalBestResult 
+} from '../utils/playerProfile';
+import { playSound, playCountdownTick, resetCountdownAudio } from '../utils/audioSystem';
 
 interface GameContextType {
   gameStatus: GameStatus;
@@ -44,6 +52,8 @@ interface GameContextType {
     guessedCountry: string;
     guessedCountryCode: string;
   } | null;
+  playerName: string;
+  personalBestResult: PersonalBestResult | null;
   
   // Action Handlers
   startGame: (customSettings?: Partial<GameSettings>) => void;
@@ -59,6 +69,7 @@ interface GameContextType {
   resetPovCount: number;
   setStreetViewReady: (ready: boolean) => void;
   updateRules: (newRules: Partial<GameRules>) => void;
+  updatePlayerName: (name: string) => void;
   toggleTelemetry: (open?: boolean) => void;
   clearLocationError: () => void;
 }
@@ -93,13 +104,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [telemetry, setTelemetry] = useState<TelemetryData>(devTelemetry.getSnapshot());
   const [isTelemetryOpen, setIsTelemetryOpen] = useState<boolean>(false);
 
+  const [playerName, setPlayerNameState] = useState<string>(() => getPlayerName());
+  const [personalBestResult, setPersonalBestResult] = useState<PersonalBestResult | null>(null);
+
   const [streak, setStreak] = useState<number>(0);
   const [bestStreak, setBestStreak] = useState<number>(() => {
-    try {
-      return parseInt(localStorage.getItem('country_streak_best') || '0', 10) || 0;
-    } catch {
-      return 0;
-    }
+    return getPlayerStats().longestCountryStreak;
   });
   const [streakResult, setStreakResult] = useState<{
     isCorrect: boolean;
@@ -109,11 +119,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     guessedCountryCode: string;
   } | null>(null);
 
+  const sessionIdRef = useRef<string>(`sp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`);
   const isSubmittingRef = useRef<boolean>(false);
   const usedCandidateIdsRef = useRef<Set<string>>(new Set());
 
   const activeMap: MapDefinition = (settings.mapId && MAP_PRESETS[settings.mapId]) || WORLD_MAP;
   const activeMode: GameModeDefinition = (settings.modeId && GAME_MODE_DEFINITIONS[settings.modeId]) || CLASSIC_MODE;
+
+  const updatePlayerName = useCallback((name: string) => {
+    const saved = savePlayerNameToStorage(name);
+    setPlayerNameState(saved);
+  }, []);
 
   // Subscribe to devTelemetry
   useEffect(() => {
@@ -190,6 +206,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setRoundStartTime(Date.now());
+    sessionIdRef.current = `sp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    setPersonalBestResult(null);
+    resetCountdownAudio();
     const initialTimeLimit = newSettings.modeId === 'time_attack'
       ? 30
       : (newSettings.rules.timeLimitSeconds > 0 ? newSettings.rules.timeLimitSeconds : null);
@@ -201,6 +220,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitCountryGuess = useCallback((code: string, name: string) => {
     if (isSubmittingRef.current || gameStatus !== 'PLAYING' || !currentLocation) return;
     isSubmittingRef.current = true;
+    playSound('submit');
 
     const targetCode = (currentLocation.countryCode || '').toUpperCase();
     const targetCountry = currentLocation.country || 'Unknown';
@@ -214,12 +234,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStreak(newStreak);
       if (newStreak > bestStreak) {
         setBestStreak(newStreak);
-        try {
-          localStorage.setItem('country_streak_best', newStreak.toString());
-        } catch (e) {
-          console.error(e);
-        }
       }
+    } else {
+      // Streak broken: record completed match for Country Streak
+      const pb = recordCompletedMatch({
+        matchId: sessionIdRef.current,
+        mode: 'country_streak',
+        streak: streak
+      });
+      setPersonalBestResult(pb);
+      setBestStreak(pb.currentStats.longestCountryStreak);
     }
 
     setStreakResult({
@@ -237,6 +261,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Single player Country Streak next round transition
   const nextStreakRound = useCallback(async () => {
     if (!streakResult) return;
+    resetCountdownAudio();
 
     if (streakResult.isCorrect && streak < 100) {
       setIsLoadingLocations(true);
@@ -298,6 +323,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const placeGuess = useCallback((lat: number, lng: number) => {
     if (gameStatus !== 'PLAYING') return;
     setSelectedGuess({ lat, lng });
+    playSound('pin');
   }, [gameStatus]);
 
   const clearGuess = useCallback(() => {
@@ -320,6 +346,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitGuess = useCallback(() => {
     if (isSubmittingRef.current || gameStatus !== 'PLAYING' || !currentLocation || !currentNode) return;
     isSubmittingRef.current = true;
+    playSound('submit');
+    resetCountdownAudio();
 
     const elapsedMs = Math.max(0, Date.now() - roundStartTime);
     const elapsedTimeSeconds = elapsedMs / 1000;
@@ -383,8 +411,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const interval = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev === null) return null;
+        if (prev <= 6 && prev > 1) {
+          playCountdownTick(prev - 1);
+        }
         if (prev <= 1) {
           clearInterval(interval);
+          resetCountdownAudio();
           // Timeout reached: trigger auto-submit
           setTimeout(() => {
             submitGuess();
@@ -395,11 +427,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [gameStatus, isStreetViewReady, settings.modeId, settings.rules.timeLimitSeconds, submitGuess]);
 
   // Next round transition
   const nextRound = useCallback(() => {
+    resetCountdownAudio();
     if (currentRoundIndex < settings.maxRounds - 1) {
       const nextIdx = currentRoundIndex + 1;
       setCurrentRoundIndex(nextIdx);
@@ -419,17 +454,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTimeRemaining(limit);
       setGameStatus('PLAYING');
     } else {
+      const finalScore = results.reduce((acc, r) => acc + r.score, 0);
+      const pb = recordCompletedMatch({
+        matchId: sessionIdRef.current,
+        mode: settings.modeId === 'time_attack' ? 'time_attack' : 'classic',
+        score: finalScore,
+        mapId: settings.mapId
+      });
+      setPersonalBestResult(pb);
       setGameStatus('GAME_FINISHED');
     }
-  }, [currentRoundIndex, settings.maxRounds, locations, settings.rules.timeLimitSeconds, settings.modeId]);
+  }, [currentRoundIndex, settings.maxRounds, locations, settings.rules.timeLimitSeconds, settings.modeId, results, settings.mapId]);
 
   const restartGame = useCallback(() => {
+    resetCountdownAudio();
     setGameStatus('IDLE');
     setSelectedGuess(null);
     setIsStreetViewReady(false);
     isSubmittingRef.current = false;
     setResults([]);
     setTimeRemaining(null);
+    setPersonalBestResult(null);
   }, []);
 
   const toggleTelemetry = useCallback((open?: boolean) => {
@@ -460,6 +505,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         streak,
         bestStreak,
         streakResult,
+        playerName,
+        personalBestResult,
         startGame,
         moveToNode,
         placeGuess,
@@ -473,6 +520,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPovCount,
         setStreetViewReady,
         updateRules,
+        updatePlayerName,
         toggleTelemetry,
         clearLocationError
       }}

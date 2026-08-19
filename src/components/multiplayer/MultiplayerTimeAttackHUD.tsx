@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { Compass } from '../common/Compass';
+import { playCountdownTick, resetCountdownAudio } from '../../utils/audioSystem';
 import { Zap, Clock, Shield, CheckCircle2, User } from 'lucide-react';
 
 interface MultiplayerTimeAttackHUDProps {
@@ -10,6 +11,18 @@ interface MultiplayerTimeAttackHUDProps {
 export const MultiplayerTimeAttackHUD: React.FC<MultiplayerTimeAttackHUDProps> = ({ timeLeft }) => {
   const { gameSession, room, playerId } = useMultiplayer();
   const [liveMultiplier, setLiveMultiplier] = useState<number>(1.5);
+
+  useEffect(() => {
+    if (timeLeft !== null && timeLeft <= 5 && timeLeft > 0) {
+      playCountdownTick(timeLeft);
+    }
+  }, [timeLeft]);
+
+  useEffect(() => {
+    return () => {
+      resetCountdownAudio();
+    };
+  }, []);
 
   useEffect(() => {
     if (!gameSession?.roundStartedAt) return;

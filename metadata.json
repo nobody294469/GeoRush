@@ -1,6 +1,6 @@
 {
-  "name": "GeoWorld Explorer",
-  "description": "A high-precision geography exploration and guessing game featuring interactive 360 panoramas, guess map, scoring engine, and development telemetry.",
+  "name": "GeoRush",
+  "description": "A fast-paced multiplayer and single-player geography guessing game featuring Street View panoramas, competitive duels, and speed challenges.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

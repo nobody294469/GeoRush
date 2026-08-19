@@ -1,31 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { Users, PlusCircle, LogIn, X, ArrowRight } from 'lucide-react';
+import { getPlayerName, setPlayerName } from '../../utils/playerProfile';
 
 export const MultiplayerConnectModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { createRoom, joinRoom, error, clearError } = useMultiplayer();
 
   const [mode, setMode] = useState<'create' | 'join'>('create');
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(() => getPlayerName(''));
   const [roomCode, setRoomCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sync stored player name if changed externally
+  useEffect(() => {
+    if (isOpen && !displayName) {
+      const stored = getPlayerName('');
+      if (stored) setDisplayName(stored);
+    }
+  }, [isOpen, displayName]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!displayName.trim() || isSubmitting) return;
+    const cleanName = displayName.trim() || 'Explorer';
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     clearError();
+    setPlayerName(cleanName);
 
     try {
       if (mode === 'create') {
-        const success = await createRoom(displayName.trim());
+        const success = await createRoom(cleanName);
         if (success) onClose();
       } else {
         if (!roomCode.trim()) return;
-        const success = await joinRoom(roomCode.trim().toUpperCase(), displayName.trim());
+        const success = await joinRoom(roomCode.trim().toUpperCase(), cleanName);
         if (success) onClose();
       }
     } catch (err) {

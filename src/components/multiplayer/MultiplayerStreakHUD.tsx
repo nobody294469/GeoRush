@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { CountrySelector } from '../common/CountrySelector';
+import { playSound } from '../../utils/audioSystem';
 import { Flame, Send, Skull, CheckCircle2, Clock } from 'lucide-react';
 
 interface MultiplayerStreakHUDProps {
@@ -28,6 +29,7 @@ export const MultiplayerStreakHUD: React.FC<MultiplayerStreakHUDProps> = ({ time
   const handleSubmit = async () => {
     if (!selectedCode || isSubmitting || hasSubmitted || isEliminated) return;
     setIsSubmitting(true);
+    playSound('submit');
     try {
       await submitGuess(0, 0, selectedCode);
     } catch (e) {

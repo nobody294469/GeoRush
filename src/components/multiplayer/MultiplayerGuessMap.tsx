@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { loadGoogleMapsApi } from '../../utils/googleMapsLoader';
+import { playSound } from '../../utils/audioSystem';
 import { Maximize2, Minimize2, Check, Trash2, Send } from 'lucide-react';
 
 const createRedPinIcon = () =>
@@ -87,6 +88,7 @@ export const MultiplayerGuessMap: React.FC = () => {
             if (hasSubmittedGuess) return;
             if (e.latLng) {
               setSelectedPin({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+              playSound('pin');
             }
           });
 
@@ -114,6 +116,7 @@ export const MultiplayerGuessMap: React.FC = () => {
         map.on('click', (e: L.LeafletMouseEvent) => {
           if (hasSubmittedGuess) return;
           setSelectedPin({ lat: e.latlng.lat, lng: e.latlng.lng });
+          playSound('pin');
         });
 
         leafletMapRef.current = map;
@@ -254,6 +257,7 @@ export const MultiplayerGuessMap: React.FC = () => {
   const handleSubmit = async () => {
     if (!selectedPin || isSubmitting || hasSubmittedGuess) return;
     setIsSubmitting(true);
+    playSound('submit');
     try {
       await submitGuess(selectedPin.lat, selectedPin.lng);
     } catch (err) {

@@ -341,11 +341,11 @@ export const MockPanoramaViewer: React.FC<MockPanoramaViewerProps> = ({ classNam
         className="w-full h-full cursor-grab active:cursor-grabbing touch-none block"
       />
 
-      {/* Street View Telemetry Badge Overlay (Top Left) */}
+      {/* Street View Badge Overlay (Top Left) */}
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 pointer-events-none">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-md border border-slate-200/90 shadow-md text-xs font-mono text-slate-800">
           <MapPin className="w-3.5 h-3.5 text-teal-600" />
-          <span className="font-bold text-teal-700">360° MOCK PANORAMA</span>
+          <span className="font-bold text-teal-700">360° PANORAMA</span>
           <span className="text-slate-300">•</span>
           <span className="text-slate-600 font-sans font-semibold">Round {currentRoundIndex + 1}</span>
         </div>

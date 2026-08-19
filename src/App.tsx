@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
 import { MultiplayerProvider, useMultiplayer } from './context/MultiplayerContext';
 import { Navbar } from './components/common/Navbar';
-import { TelemetryModal } from './components/common/TelemetryModal';
 import { PanoramaViewer } from './components/panorama/PanoramaViewer';
 import { GuessMap } from './components/map/GuessMap';
 import { RoundResultOverlay } from './components/game/RoundResultOverlay';
@@ -20,7 +19,6 @@ const MainLayout: React.FC = () => {
     submitGuess, 
     nextRound, 
     resetPOV, 
-    isTelemetryOpen, 
     isLoadingLocations,
     isStreetViewReady,
     currentRoundIndex,
@@ -44,9 +42,6 @@ const MainLayout: React.FC = () => {
       ) {
         return;
       }
-
-      // Guard 2: Do not trigger if telemetry modal is open
-      if (isTelemetryOpen) return;
 
       // Shortcut: R = Reset camera POV heading & pitch for current round
       if (e.code === 'KeyR') {
@@ -78,24 +73,14 @@ const MainLayout: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameStatus, selectedGuess, submitGuess, nextRound, resetPOV, isTelemetryOpen, isLoadingLocations]);
+  }, [gameStatus, selectedGuess, submitGuess, nextRound, resetPOV, isLoadingLocations]);
 
   if (gameStatus === 'IDLE') {
-    return (
-      <>
-        <StartScreen />
-        <TelemetryModal />
-      </>
-    );
+    return <StartScreen />;
   }
 
   if (gameStatus === 'GAME_FINISHED') {
-    return (
-      <>
-        <GameSummary />
-        <TelemetryModal />
-      </>
-    );
+    return <GameSummary />;
   }
 
   const showLoadingOverlay = gameStatus === 'PLAYING' && (!isStreetViewReady || isLoadingLocations);
@@ -143,9 +128,6 @@ const MainLayout: React.FC = () => {
           </>
         )}
       </div>
-
-      {/* Development Telemetry Modal */}
-      <TelemetryModal />
     </div>
   );
 };

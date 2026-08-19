@@ -1,16 +1,36 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { Trophy, Flame, RotateCcw, Home, Skull } from 'lucide-react';
+import { recordCompletedMatch } from '../../utils/playerProfile';
+import { playSound } from '../../utils/audioSystem';
 
 export const MultiplayerStreakFinalStandings: React.FC = () => {
   const { gameSession, isHost, playAgain, leaveRoom, room, playerId } = useMultiplayer();
 
   if (!gameSession || !gameSession.streakState) return null;
 
+  useEffect(() => {
+    playSound('victory');
+  }, []);
+
   const streakState = gameSession.streakState;
   const winnerId = streakState.winnerPlayerId;
   const winnerPlayer = winnerId ? room?.players.find(p => p.id === winnerId) : null;
   const isWinner = winnerId === playerId;
+
+  // Idempotently record completed match statistics for the local player
+  useEffect(() => {
+    if (!gameSession || !playerId || !streakState) return;
+    const myState = streakState.playerStates[playerId];
+    const myStreak = myState ? myState.streak : 0;
+    const matchId = `mp_streak_${room?.code || 'room'}_${gameSession.currentRound}`;
+
+    recordCompletedMatch({
+      matchId,
+      mode: 'country_streak',
+      streak: myStreak
+    });
+  }, [gameSession, playerId, streakState, room]);
 
   let endReasonText = 'Match Completed';
   if (streakState.endReason === 'LAST_SURVIVOR') {

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { MultiplayerResultMap } from './MultiplayerResultMap';
 import { AnimatedScore } from '../common/AnimatedScore';
 import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
+import { playSound } from '../../utils/audioSystem';
 import { Award, ArrowRight, Trophy, MapPin, Navigation, Clock, Heart, Swords, ShieldAlert, Zap } from 'lucide-react';
 import { DuelRoundResult } from '../../shared/types/multiplayer';
 
@@ -27,6 +28,14 @@ export const MultiplayerRoundResults: React.FC = () => {
   const myState = duelResult?.playerStatesAfter && playerId ? duelResult.playerStatesAfter[playerId] : undefined;
   const opponentId = opponentGuess?.playerId;
   const opponentState = duelResult?.playerStatesAfter && opponentId ? duelResult.playerStatesAfter[opponentId] : undefined;
+
+  useEffect(() => {
+    if (isRoundWinner || (myGuess && myGuess.score >= 4000)) {
+      playSound('excellent');
+    } else {
+      playSound('score');
+    }
+  }, [currentRoundResult.roundIndex]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">

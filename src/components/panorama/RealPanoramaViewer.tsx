@@ -254,12 +254,11 @@ export const RealPanoramaViewer: React.FC<RealPanoramaViewerProps> = ({
           <AlertTriangle className="w-8 h-8" />
         </div>
         <div className="space-y-1 max-w-md">
-          <h3 className="font-bold text-slate-100 text-base">Real Street View Initialization Error</h3>
+          <h3 className="font-bold text-slate-100 text-base">Street View Initialization Error</h3>
           <p className="text-xs text-slate-400 leading-relaxed font-mono">{errorMsg}</p>
         </div>
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 max-w-sm font-sans space-y-2">
-          <p>Verify that your Google Maps API key is correct and has the <strong>Maps JavaScript API</strong> enabled in Google Cloud Console.</p>
-          <p className="text-emerald-400">You can easily switch back to MOCK MODE in the Telemetry panel.</p>
+          <p>Please check your network connection or Google Maps configuration.</p>
         </div>
       </div>
     );

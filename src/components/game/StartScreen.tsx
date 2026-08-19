@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
+import { useAudio } from '../../hooks/useAudio';
 import { GameMode, TimeLimitRule, GAME_MODE_PRESETS } from '../../types/game';
-import { Play, Activity, Clock, Compass, Flame, AlertCircle, X, Users, Map as MapIcon, ChevronDown } from 'lucide-react';
+import { Play, Clock, Compass, Flame, AlertCircle, X, Users, Map as MapIcon, ChevronDown, User, Check, Volume2, VolumeX } from 'lucide-react';
 import { MapRegistry } from '../../game/mapRegistry';
 import { MultiplayerConnectModal } from '../multiplayer/MultiplayerConnectModal';
 
 export const StartScreen: React.FC = () => {
-  const { startGame, toggleTelemetry, telemetry, settings, isLoadingLocations, locationError, clearLocationError } = useGame();
+  const { 
+    startGame, 
+    settings, 
+    isLoadingLocations, 
+    locationError, 
+    clearLocationError,
+    playerName,
+    updatePlayerName
+  } = useGame();
+  
+  const { soundEnabled, toggleSound } = useAudio();
   
   const [gameType, setGameType] = useState<'classic' | 'country_streak' | 'time_attack'>('classic');
   const [selectedMapId, setSelectedMapId] = useState<string>(settings.mapId || 'world');
@@ -15,6 +26,8 @@ export const StartScreen: React.FC = () => {
   const [selectedMode, setSelectedMode] = useState<GameMode>(settings.gameMode || 'normal');
   const [timeLimit, setTimeLimit] = useState<TimeLimitRule>(settings.rules.timeLimitSeconds);
   const [isMultiplayerModalOpen, setIsMultiplayerModalOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(playerName);
 
   const handleStart = () => {
     if (isLoadingLocations) return;
@@ -31,6 +44,14 @@ export const StartScreen: React.FC = () => {
     });
   };
 
+  const handleSaveName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = nameInput.trim() || 'Explorer';
+    updatePlayerName(clean);
+    setNameInput(clean);
+    setIsEditingName(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Background Subtle Grid Pattern */}
@@ -39,14 +60,73 @@ export const StartScreen: React.FC = () => {
       {/* Main Content Container */}
       <div className="w-full max-w-2xl relative z-10 space-y-8 text-center">
         
-        {/* Hero Title */}
+        {/* Hero Title & Player Profile Chip */}
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-teal-500" />
-            WORLD EXPLORER CHALLENGE
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-teal-500" />
+              GEORUSH CHALLENGE
+            </div>
+
+            {/* Persistent Display Name Chip */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-xs">
+              <User className="w-3.5 h-3.5 text-teal-600" />
+              {isEditingName ? (
+                <form onSubmit={handleSaveName} className="inline-flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    className="w-24 px-1.5 py-0.5 bg-slate-100 rounded text-xs font-bold text-slate-900 border border-teal-500 focus:outline-none"
+                    maxLength={24}
+                    autoFocus
+                  />
+                  <button type="submit" className="p-0.5 text-teal-600 hover:text-teal-700">
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNameInput(playerName);
+                    setIsEditingName(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-slate-800 hover:text-teal-600 transition-colors cursor-pointer"
+                >
+                  <span className="font-bold">{playerName}</span>
+                  <span className="text-[10px] text-slate-400 font-normal underline">edit</span>
+                </button>
+              )}
+            </div>
+
+            {/* Sound Toggle Chip */}
+            <button
+              type="button"
+              onClick={toggleSound}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold shadow-xs transition-all cursor-pointer ${
+                soundEnabled
+                  ? 'bg-white border-slate-200 text-slate-700 hover:text-teal-700 hover:border-teal-300'
+                  : 'bg-slate-100/80 border-slate-200 text-slate-400'
+              }`}
+              title={soundEnabled ? 'Sound Effects Enabled (Click to Mute)' : 'Sound Effects Muted (Click to Unmute)'}
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Sound On</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Muted</span>
+                </>
+              )}
+            </button>
           </div>
+
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900">
-            GeoWorld <span className="text-teal-600">Explorer</span>
+            Geo<span className="text-teal-600">Rush</span>
           </h1>
           <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
             Test your geographic intuition across interactive Street View panoramas and high-precision world maps.
@@ -338,15 +418,6 @@ export const StartScreen: React.FC = () => {
           isOpen={isMultiplayerModalOpen}
           onClose={() => setIsMultiplayerModalOpen(false)}
         />
-
-        {/* Telemetry Button */}
-        <button
-          onClick={() => toggleTelemetry(true)}
-          className="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-mono flex items-center justify-center gap-2 transition-colors mx-auto cursor-pointer shadow-xs"
-        >
-          <Activity className="w-4 h-4 text-teal-600" />
-          <span>Google Maps Development Telemetry ({telemetry.quotaUsed}/200 API Calls)</span>
-        </button>
 
       </div>
     </div>

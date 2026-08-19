@@ -1,18 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { formatDistance, formatTime } from '../../utils/scoring';
 import { MatchSummaryMap } from '../map/MatchSummaryMap';
 import { AnimatedScore } from '../common/AnimatedScore';
 import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
-import { Trophy, Star, RotateCcw, MapPin, ArrowLeft, Globe, Award, Zap } from 'lucide-react';
+import { playSound } from '../../utils/audioSystem';
+import { Trophy, Star, RotateCcw, MapPin, ArrowLeft, Globe, Award, Zap, Sparkles } from 'lucide-react';
 
 export const GameSummary: React.FC = () => {
-  const { results, totalScore, restartGame, startGame, settings, telemetry } = useGame();
+  const { results, totalScore, restartGame, startGame, settings, telemetry, personalBestResult } = useGame();
+
+  useEffect(() => {
+    playSound('victory');
+  }, []);
 
   const isTimeAttack = settings.modeId === 'time_attack';
   const maxRoundScore = isTimeAttack ? 7500 : 5000;
   const maxTotalScore = settings.maxRounds * maxRoundScore;
   const percentage = Math.round((totalScore / maxTotalScore) * 100);
+
+  const isNewRecord = personalBestResult && (
+    personalBestResult.isNewBestOverall ||
+    personalBestResult.isNewModeBest ||
+    personalBestResult.isNewMapBest
+  );
 
   // Calculate star rating (1 to 5 stars)
   const stars = Math.max(1, Math.min(5, Math.ceil((totalScore / maxTotalScore) * 5)));
@@ -40,13 +51,23 @@ export const GameSummary: React.FC = () => {
           </div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Game Summary</h1>
           <p className="text-sm text-slate-500 font-medium">
-            You completed all {settings.maxRounds} rounds of the World Explorer Challenge
+            You completed all {settings.maxRounds} rounds of GeoRush
           </p>
 
+          {/* Personal Best Alert Badge */}
+          {isNewRecord && (
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs font-black uppercase tracking-wider animate-pulse">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>New Personal Best!</span>
+            </div>
+          )}
+
           {/* Performance Title Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold uppercase tracking-wider">
-            <Award className="w-4 h-4 text-teal-600" />
-            <span>{performance.badge} {performance.title}</span>
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold uppercase tracking-wider">
+              <Award className="w-4 h-4 text-teal-600" />
+              <span>{performance.badge} {performance.title}</span>
+            </div>
           </div>
 
           {/* Stars Rating */}

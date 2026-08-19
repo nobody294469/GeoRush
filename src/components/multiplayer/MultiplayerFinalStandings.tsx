@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { Trophy, Crown, RefreshCw, LogOut, Swords, Heart, ShieldAlert, Zap, Globe } from 'lucide-react';
 import { DuelRoundResult, DuelPlayerState } from '../../shared/types/multiplayer';
 import { MatchSummaryMap } from '../map/MatchSummaryMap';
 import { AnimatedScore } from '../common/AnimatedScore';
 import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
+import { recordCompletedMatch } from '../../utils/playerProfile';
+import { playSound } from '../../utils/audioSystem';
 
 export const MultiplayerFinalStandings: React.FC = () => {
   const { gameSession, playerId, isHost, playAgain, leaveRoom, room } = useMultiplayer();
 
   if (!gameSession) return null;
+
+  useEffect(() => {
+    playSound('victory');
+  }, []);
 
   const isDuels = gameSession.gameType === 'duels';
   const isTimeAttack = gameSession.gameType === 'time_attack';
@@ -33,6 +39,30 @@ export const MultiplayerFinalStandings: React.FC = () => {
   const opponentState = duelPlayers.find(p => p.playerId !== playerId);
 
   const roundResults = (gameSession.roundResults || []) as DuelRoundResult[];
+
+  // Idempotently record completed match statistics for the local player
+  useEffect(() => {
+    if (!gameSession || !playerId) return;
+    const matchId = `mp_${room?.code || 'room'}_${gameSession.currentRound}_${gameSession.gameType}`;
+
+    if (isDuels) {
+      recordCompletedMatch({
+        matchId,
+        mode: 'duels',
+        duelWon: matchWinnerId === playerId,
+        duelLost: Boolean(matchWinnerId && matchWinnerId !== playerId)
+      });
+    } else {
+      const myStanding = standings.find(s => s.playerId === playerId);
+      const score = myStanding ? myStanding.totalScore : 0;
+      recordCompletedMatch({
+        matchId,
+        mode: isTimeAttack ? 'time_attack' : 'classic',
+        score,
+        mapId: room?.settings?.mapId || 'world'
+      });
+    }
+  }, [gameSession, playerId, isDuels, isTimeAttack, matchWinnerId, standings, room]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
