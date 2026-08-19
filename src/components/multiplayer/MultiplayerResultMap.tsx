@@ -90,8 +90,8 @@ export const MultiplayerResultMap: React.FC<{ roundResult: RoundResult }> = ({ r
       }
     });
 
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12, animate: true, duration: 0.6 });
   }, [roundResult]);
 
-  return <div ref={containerRef} className="w-full h-full rounded-xl overflow-hidden min-h-[350px]" />;
+  return <div ref={containerRef} className="w-full h-full rounded-xl overflow-hidden min-h-[350px] bg-slate-950" />;
 };

@@ -1,7 +1,9 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
 import { formatDistance, getScoreRating } from '../../utils/scoring';
-import { Trophy, MapPin, ArrowRight, CheckCircle2, Clock, Info } from 'lucide-react';
+import { AnimatedScore } from '../common/AnimatedScore';
+import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
+import { MapPin, ArrowRight, Clock, Zap } from 'lucide-react';
 
 export const RoundResultOverlay: React.FC = () => {
   const { 
@@ -17,6 +19,11 @@ export const RoundResultOverlay: React.FC = () => {
   const currentResult = results[results.length - 1];
   if (!currentResult) return null;
 
+  const isTimeAttack = settings.modeId === 'time_attack';
+  const maxRoundScore = isTimeAttack ? 7500 : 5000;
+  const tier = getScoreTier(currentResult.score, maxRoundScore);
+  const tierStyle = getScoreTierStyles(tier);
+
   const { title: ratingTitle } = getScoreRating(currentResult.score);
   const isLastRound = currentRoundIndex >= settings.maxRounds - 1;
 
@@ -27,9 +34,16 @@ export const RoundResultOverlay: React.FC = () => {
         {/* Rating & Score Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
-            <span className="text-xs font-extrabold uppercase tracking-widest text-teal-700">
-              {ratingTitle}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-teal-700">
+                {ratingTitle}
+              </span>
+              {tier === 'master' && (
+                <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300">
+                  💎 4,800+
+                </span>
+              )}
+            </div>
             <h2 className="text-2xl font-black text-slate-900 mt-0.5">
               {formatDistance(currentResult.distanceKm)} <span className="text-slate-500 text-sm font-normal">away</span>
             </h2>
@@ -37,16 +51,17 @@ export const RoundResultOverlay: React.FC = () => {
 
           <div className="text-right">
             <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-              {settings.modeId === 'time_attack' ? 'Time Attack Score' : 'Round Score'}
+              {isTimeAttack ? 'Time Attack Score' : 'Round Score'}
             </div>
-            <div className="text-2xl font-black text-amber-600 font-mono">
-              +{currentResult.score.toLocaleString()} <span className="text-xs text-slate-400">/ {settings.modeId === 'time_attack' ? '7,500' : '5,000'}</span>
+            <div className={`text-2xl font-black font-mono ${tierStyle.textColor}`}>
+              <AnimatedScore value={currentResult.score} duration={750} prefix="+" />
+              <span className="text-xs text-slate-400 font-normal"> / {isTimeAttack ? '7,500' : '5,000'}</span>
             </div>
           </div>
         </div>
 
         {/* Time Attack Detailed Breakdown */}
-        {settings.modeId === 'time_attack' && (
+        {isTimeAttack && (
           <div className="grid grid-cols-3 gap-2 bg-sky-50/80 rounded-xl p-3 border border-sky-200 text-center font-mono text-xs">
             <div>
               <div className="text-[10px] text-sky-700 font-semibold uppercase">Base Geo Score</div>
@@ -62,8 +77,9 @@ export const RoundResultOverlay: React.FC = () => {
             </div>
             <div>
               <div className="text-[10px] text-sky-700 font-semibold uppercase">Speed Bonus</div>
-              <div className="font-bold text-sky-700 mt-0.5 font-mono">
-                ⚡ {(currentResult.timeMultiplier ?? 1.0).toFixed(3)}x
+              <div className="font-bold text-sky-700 mt-0.5 font-mono flex items-center justify-center gap-0.5">
+                <Zap className="w-3.5 h-3.5 fill-sky-500 inline" />
+                {(currentResult.timeMultiplier ?? 1.0).toFixed(3)}x
               </div>
             </div>
           </div>

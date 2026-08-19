@@ -17,6 +17,7 @@ import { DuelsSessionManager } from './duelsSession';
 import { StreakSessionManager } from './streakSession';
 import { TimeAttackSessionManager } from './timeAttackSession';
 import { getModeStrategy, validateRoomSettings } from '../src/game/modeRegistry';
+import { resolveCandidateOnServer } from './serverStreetViewResolver';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 unambiguous characters
 
@@ -362,6 +363,58 @@ export class RoomManager {
 
     const candidateSeed = room.gameSession.selectNextCandidateSeed();
     return { success: true, room, candidateSeed };
+  }
+
+  /**
+   * Resolves target on server and activates round for room.
+   * Retries up to 5 times if ZERO_RESULTS or resolution fails.
+   */
+  public async resolveAndActivateCurrentRound(
+    roomCode: string,
+    onTimerExpire?: () => void
+  ): Promise<{
+    success: boolean;
+    room?: RoomWithSession;
+    activeTarget?: ActiveRoundTarget;
+    session?: MultiplayerGameSession;
+    error?: string;
+  }> {
+    const room = this.rooms.get(roomCode);
+    if (!room || !room.gameSession) {
+      return { success: false, error: 'Active game session not found.' };
+    }
+
+    const session = room.gameSession;
+    let candidateSeed = session.pendingCandidateSeed || session.selectNextCandidateSeed();
+    let attempts = 0;
+    const maxRetries = 5;
+
+    while (attempts < maxRetries) {
+      attempts++;
+      const resolution = await resolveCandidateOnServer(candidateSeed);
+
+      if (!resolution.failed && resolution.panoId) {
+        const activeRes = session.activateRoundFromResolution(resolution, onTimerExpire, room.players);
+        room.state = 'ROUND_ACTIVE';
+        return {
+          success: true,
+          room,
+          activeTarget: activeRes.activeTarget,
+          session: session.toPublicSession(room.players)
+        };
+      }
+
+      session.usedCandidateIds.add(candidateSeed.candidateId);
+      try {
+        candidateSeed = session.selectNextCandidateSeed();
+      } catch (e: any) {
+        return { success: false, error: e.message || 'No more candidates available.' };
+      }
+    }
+
+    room.state = 'LOBBY';
+    room.gameSession = undefined;
+    return { success: false, error: 'Target resolution failed after maximum retry attempts.' };
   }
 
   /**

@@ -1,14 +1,17 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
 import { formatDistance, formatTime } from '../../utils/scoring';
-import { MasterResultMap } from '../map/MasterResultMap';
-import { Trophy, Star, RotateCcw, MapPin, ArrowLeft, Globe, Award } from 'lucide-react';
+import { MatchSummaryMap } from '../map/MatchSummaryMap';
+import { AnimatedScore } from '../common/AnimatedScore';
+import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
+import { Trophy, Star, RotateCcw, MapPin, ArrowLeft, Globe, Award, Zap } from 'lucide-react';
 
 export const GameSummary: React.FC = () => {
-  const { results, totalScore, restartGame, startGame, settings } = useGame();
+  const { results, totalScore, restartGame, startGame, settings, telemetry } = useGame();
 
   const isTimeAttack = settings.modeId === 'time_attack';
-  const maxTotalScore = settings.maxRounds * (isTimeAttack ? 7500 : 5000);
+  const maxRoundScore = isTimeAttack ? 7500 : 5000;
+  const maxTotalScore = settings.maxRounds * maxRoundScore;
   const percentage = Math.round((totalScore / maxTotalScore) * 100);
 
   // Calculate star rating (1 to 5 stars)
@@ -61,12 +64,12 @@ export const GameSummary: React.FC = () => {
           </div>
         </div>
 
-        {/* Total Score Stat Card */}
+        {/* Total Score Stat Card with Animated Roll-up */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-200 text-center shadow-xs">
           <div>
             <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Score</div>
-            <div className="text-3xl font-black text-teal-600 font-mono mt-1">
-              {totalScore.toLocaleString()}
+            <div className="text-3xl font-black text-teal-600 font-mono mt-1 flex items-baseline justify-center gap-1">
+              <AnimatedScore value={totalScore} duration={850} />
               <span className="text-xs text-slate-400 font-normal"> / {maxTotalScore.toLocaleString()}</span>
             </div>
           </div>
@@ -74,7 +77,7 @@ export const GameSummary: React.FC = () => {
           <div>
             <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Accuracy</div>
             <div className="text-3xl font-black text-teal-700 font-mono mt-1">
-              {percentage}%
+              <AnimatedScore value={percentage} duration={850} suffix="%" />
             </div>
           </div>
 
@@ -86,23 +89,22 @@ export const GameSummary: React.FC = () => {
           </div>
         </div>
 
-        {/* 5-Round Master Result Map */}
+        {/* 5-Round Interactive Master Summary Map */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
               <Globe className="w-4 h-4 text-teal-600" />
-              Master Summary Map ({settings.maxRounds} Rounds)
+              Master Summary Map ({results.length} Rounds)
             </h2>
-            <div className="flex items-center gap-3 text-xs font-mono font-medium">
-              <span className="flex items-center gap-1 text-teal-700">🏁 Target</span>
-              <span className="flex items-center gap-1 text-rose-600">📍 Guess</span>
-            </div>
           </div>
 
-          <MasterResultMap />
+          <MatchSummaryMap
+            singlePlayerResults={results}
+            apiMode={telemetry.apiMode}
+          />
         </div>
 
-        {/* Round by Round Breakdown */}
+        {/* Round by Round Breakdown with Visual Score Tiers */}
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
             <MapPin className="w-4 h-4 text-teal-600" />
@@ -110,42 +112,59 @@ export const GameSummary: React.FC = () => {
           </h2>
 
           <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-xs">
-            {results.map((r, idx) => (
-              <div key={idx} className="p-4 flex items-center justify-between text-sm hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-800 font-mono font-bold text-xs flex items-center justify-center border border-teal-200">
-                    R{r.roundNumber}
-                  </span>
-                  <div>
-                    <div className="font-bold text-slate-800">{r.location.name}</div>
-                    <div className="text-xs text-slate-500">{r.location.city}, {r.location.country}</div>
-                  </div>
-                </div>
+            {results.map((r, idx) => {
+              const tier = getScoreTier(r.score, maxRoundScore);
+              const tierStyle = getScoreTierStyles(tier);
 
-                <div className="flex items-center gap-6 text-right font-mono">
-                  {isTimeAttack && (
-                    <>
-                      <div>
-                        <div className="text-slate-700 font-semibold">{r.timeTakenSeconds}s</div>
-                        <div className="text-[10px] text-slate-400 uppercase">time</div>
+              return (
+                <div key={idx} className="p-4 flex items-center justify-between text-sm hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-800 font-mono font-bold text-xs flex items-center justify-center border border-teal-200">
+                      R{r.roundNumber}
+                    </span>
+                    <div>
+                      <div className="font-bold text-slate-800 flex items-center gap-2">
+                        <span>{r.location.name}</span>
+                        {tier === 'master' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            💎 High Score
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <div className="text-sky-700 font-semibold">⚡ {(r.timeMultiplier ?? 1.0).toFixed(3)}x</div>
-                        <div className="text-[10px] text-slate-400 uppercase">multiplier</div>
-                      </div>
-                    </>
-                  )}
-                  <div>
-                    <div className="text-slate-700 font-semibold">{formatDistance(r.distanceKm)}</div>
-                    <div className="text-[10px] text-slate-400 uppercase">distance</div>
+                      <div className="text-xs text-slate-500">{r.location.city}, {r.location.country}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-amber-600 font-bold">+{r.score.toLocaleString()}</div>
-                    <div className="text-[10px] text-slate-400 uppercase">points</div>
+
+                  <div className="flex items-center gap-6 text-right font-mono">
+                    {isTimeAttack && (
+                      <>
+                        <div>
+                          <div className="text-slate-700 font-semibold">{r.timeTakenSeconds}s</div>
+                          <div className="text-[10px] text-slate-400 uppercase">time</div>
+                        </div>
+                        <div>
+                          <div className="text-sky-700 font-semibold flex items-center justify-end gap-0.5">
+                            <Zap className="w-3 h-3 fill-sky-500 inline" />
+                            {(r.timeMultiplier ?? 1.0).toFixed(3)}x
+                          </div>
+                          <div className="text-[10px] text-slate-400 uppercase">multiplier</div>
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <div className="text-slate-700 font-semibold">{formatDistance(r.distanceKm)}</div>
+                      <div className="text-[10px] text-slate-400 uppercase">distance</div>
+                    </div>
+                    <div>
+                      <div className={`font-bold ${tierStyle.textColor}`}>
+                        <AnimatedScore value={r.score} duration={700} prefix="+" />
+                      </div>
+                      <div className="text-[10px] text-slate-400 uppercase">points</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

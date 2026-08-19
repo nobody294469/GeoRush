@@ -140,6 +140,16 @@ export const RealPanoramaViewer: React.FC<RealPanoramaViewerProps> = ({
           });
 
           // Pano changed & position changed
+          panorama.addListener('status_changed', () => {
+            const status = panorama.getStatus();
+            if (status && status !== 'OK' && status !== (google.maps as any).StreetViewStatus?.OK) {
+              devTelemetry.trackError(`StreetView status: ${status}`);
+              setErrorMsg(`Google Street View status error: ${status}`);
+              setIsLoading(false);
+              setStreetViewReady(false);
+            }
+          });
+
           panorama.addListener('pano_changed', () => {
             const currentPano = panorama.getPano();
             if (currentPano) {

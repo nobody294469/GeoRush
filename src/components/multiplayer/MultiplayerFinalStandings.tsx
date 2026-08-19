@@ -1,7 +1,10 @@
 import React from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
-import { Trophy, Crown, RefreshCw, LogOut, Award, Star, Swords, Heart, ShieldAlert, Zap } from 'lucide-react';
+import { Trophy, Crown, RefreshCw, LogOut, Swords, Heart, ShieldAlert, Zap, Globe } from 'lucide-react';
 import { DuelRoundResult, DuelPlayerState } from '../../shared/types/multiplayer';
+import { MatchSummaryMap } from '../map/MatchSummaryMap';
+import { AnimatedScore } from '../common/AnimatedScore';
+import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
 
 export const MultiplayerFinalStandings: React.FC = () => {
   const { gameSession, playerId, isHost, playAgain, leaveRoom, room } = useMultiplayer();
@@ -9,11 +12,13 @@ export const MultiplayerFinalStandings: React.FC = () => {
   if (!gameSession) return null;
 
   const isDuels = gameSession.gameType === 'duels';
+  const isTimeAttack = gameSession.gameType === 'time_attack';
   const duelState = gameSession.duelState;
 
-  // Classic Mode values
+  // Classic / Time Attack Mode values
   const standings = gameSession.standings;
   const classicWinner = standings[0];
+  const isIClassicWinner = classicWinner?.playerId === playerId;
 
   // Duels Mode values
   const matchWinnerId = duelState?.matchWinnerId;
@@ -31,7 +36,7 @@ export const MultiplayerFinalStandings: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8 text-center">
+      <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8 text-center my-6">
         
         {isDuels ? (
           /* DUELS FINAL SCREEN */
@@ -135,6 +140,19 @@ export const MultiplayerFinalStandings: React.FC = () => {
               </div>
             </div>
 
+            {/* Duel Master Match Summary Map */}
+            {roundResults.length > 0 && (
+              <div className="space-y-3 text-left">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-teal-400" />
+                    Match Summary Map ({roundResults.length} Rounds)
+                  </h2>
+                </div>
+                <MatchSummaryMap multiplayerRoundResults={roundResults} />
+              </div>
+            )}
+
             {/* Round History */}
             <div className="space-y-2 text-left">
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Match Round History</h2>
@@ -183,65 +201,88 @@ export const MultiplayerFinalStandings: React.FC = () => {
             {/* Winner Banner */}
             <div className="space-y-3">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-500/40 text-amber-400 mb-2 animate-bounce">
-                {gameSession.gameType === 'time_attack' ? <Zap className="w-8 h-8 fill-amber-400" /> : <Trophy className="w-8 h-8" />}
+                {isTimeAttack ? <Zap className="w-8 h-8 fill-amber-400" /> : <Trophy className="w-8 h-8" />}
               </div>
               <span className="text-xs font-extrabold tracking-widest text-amber-400 uppercase">
-                {gameSession.gameType === 'time_attack' ? '⚡ Time Attack Complete' : 'Match Complete'}
+                {isTimeAttack ? '⚡ Time Attack Complete' : 'Match Complete'}
               </span>
               <h1 className="text-3xl sm:text-4xl font-black text-white">
-                {classicWinner ? `${classicWinner.displayName} Wins!` : 'Game Over'}
+                {isIClassicWinner
+                  ? '🎉 You Won the Match!'
+                  : classicWinner
+                  ? `${classicWinner.displayName} Wins!`
+                  : 'Game Over'}
               </h1>
               <p className="text-sm text-slate-400">
-                Final standings after {gameSession.maxRounds} {gameSession.gameType === 'time_attack' ? 'speed' : ''} rounds
+                Final standings after {gameSession.maxRounds} {isTimeAttack ? 'speed' : ''} rounds
               </p>
             </div>
+
+            {/* Match Summary Map for Multiplayer Classic & Time Attack */}
+            {gameSession.roundResults && gameSession.roundResults.length > 0 && (
+              <div className="space-y-3 text-left">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-teal-400" />
+                    Interactive Match Summary Map ({gameSession.roundResults.length} Rounds)
+                  </h2>
+                </div>
+                <MatchSummaryMap multiplayerRoundResults={gameSession.roundResults} />
+              </div>
+            )}
 
             {/* Podium / Leaderboard Table */}
             <div className="space-y-3 text-left">
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Final Leaderboard</h2>
               <div className="space-y-2">
-                {standings.map((p, idx) => (
-                  <div
-                    key={p.playerId}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition ${
-                      idx === 0
-                        ? 'bg-amber-500/10 border-amber-500/40 text-amber-100 shadow-lg'
-                        : 'bg-slate-800/60 border-slate-700/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
-                          idx === 0
-                            ? 'bg-amber-400 text-slate-950'
-                            : idx === 1
-                            ? 'bg-slate-300 text-slate-950'
-                            : idx === 2
-                            ? 'bg-amber-700 text-white'
-                            : 'bg-slate-700 text-slate-300'
-                        }`}
-                      >
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <div className="font-bold text-sm flex items-center gap-1.5">
-                          {p.displayName}
-                          {idx === 0 && <Crown className="w-4 h-4 text-amber-400" />}
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
-                          Round Scores: {p.roundScores.map(s => Math.round(s || 0)).join(' | ')}
+                {standings.map((p, idx) => {
+                  const maxPossible = gameSession.maxRounds * (isTimeAttack ? 7500 : 5000);
+                  const tier = getScoreTier(p.totalScore, maxPossible);
+                  const tierStyle = getScoreTierStyles(tier);
+
+                  return (
+                    <div
+                      key={p.playerId}
+                      className={`flex items-center justify-between p-4 rounded-xl border transition ${
+                        idx === 0
+                          ? 'bg-amber-500/10 border-amber-500/40 text-amber-100 shadow-lg ring-1 ring-amber-400/30'
+                          : 'bg-slate-800/60 border-slate-700/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                            idx === 0
+                              ? 'bg-amber-400 text-slate-950'
+                              : idx === 1
+                              ? 'bg-slate-300 text-slate-950'
+                              : idx === 2
+                              ? 'bg-amber-700 text-white'
+                              : 'bg-slate-700 text-slate-300'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div className="font-bold text-sm flex items-center gap-1.5">
+                            {p.displayName} {p.playerId === playerId ? '(You)' : ''}
+                            {idx === 0 && <Crown className="w-4 h-4 text-amber-400" />}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono">
+                            Round Scores: {p.roundScores.map(s => Math.round(s || 0)).join(' | ')}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="font-mono font-black text-emerald-400 text-lg">
-                        {p.totalScore}
-                      </span>
-                      <span className="text-xs text-slate-400 ml-1">pts</span>
+                      <div className="text-right">
+                        <span className={`font-mono font-black text-lg ${tierStyle.textColor}`}>
+                          <AnimatedScore value={p.totalScore} duration={800} />
+                        </span>
+                        <span className="text-xs text-slate-400 ml-1">pts</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>
@@ -274,3 +315,4 @@ export const MultiplayerFinalStandings: React.FC = () => {
     </div>
   );
 };
+

@@ -17,6 +17,11 @@ export const MultiplayerGameScreen: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+  const isServerReal = activeTarget?.apiMode === 'REAL';
+  const isSyntheticPano = activeTarget?.panoId?.startsWith('mock_pano_') ?? false;
+
+  // Server-authoritative panorama mode selection
+  const isRealMode = Boolean(apiKey && isServerReal && activeTarget?.panoId && !isSyntheticPano);
 
   // Timer countdown hook
   useEffect(() => {
@@ -183,7 +188,7 @@ export const MultiplayerGameScreen: React.FC = () => {
 
       {/* Main Panorama Canvas */}
       <div className="w-full h-full bg-slate-950 flex items-center justify-center">
-        {apiKey ? (
+        {isRealMode ? (
           activeTarget?.panoId ? (
             <RealPanoramaViewer
               apiKey={apiKey}

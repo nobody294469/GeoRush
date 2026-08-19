@@ -50,6 +50,7 @@ export interface ActiveRoundTarget {
   mockLocationId?: string;
   initialHeading?: number;
   initialPitch?: number;
+  apiMode?: 'REAL' | 'MOCK';
 }
 
 export interface CandidateSeed {

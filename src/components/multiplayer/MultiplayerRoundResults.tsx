@@ -1,6 +1,8 @@
 import React from 'react';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import { MultiplayerResultMap } from './MultiplayerResultMap';
+import { AnimatedScore } from '../common/AnimatedScore';
+import { getScoreTier, getScoreTierStyles } from '../../utils/scoreTiers';
 import { Award, ArrowRight, Trophy, MapPin, Navigation, Clock, Heart, Swords, ShieldAlert, Zap } from 'lucide-react';
 import { DuelRoundResult } from '../../shared/types/multiplayer';
 
@@ -10,6 +12,7 @@ export const MultiplayerRoundResults: React.FC = () => {
   if (!currentRoundResult || !gameSession) return null;
 
   const isDuels = gameSession.gameType === 'duels';
+  const isTimeAttack = gameSession.gameType === 'time_attack';
   const duelResult = isDuels ? (currentRoundResult as DuelRoundResult) : undefined;
   const matchFinished = gameSession.duelState?.matchFinished || gameSession.currentRound >= gameSession.maxRounds;
 
@@ -115,7 +118,7 @@ export const MultiplayerRoundResults: React.FC = () => {
                   <div className="bg-slate-900/80 border border-slate-700/70 rounded-xl p-3">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Your Score</span>
                     <span className="text-xl font-mono font-black text-emerald-400">
-                      {Math.round(myGuess?.score ?? 0)}
+                      <AnimatedScore value={myGuess?.score ?? 0} duration={600} />
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">
                       {myGuess?.timedOut ? 'Timed Out' : `${Math.round(myGuess?.distanceKm ?? 0)} km`}
@@ -127,7 +130,7 @@ export const MultiplayerRoundResults: React.FC = () => {
                       {opponentGuess?.displayName || 'Opponent'} Score
                     </span>
                     <span className="text-xl font-mono font-black text-cyan-400">
-                      {Math.round(opponentGuess?.score ?? 0)}
+                      <AnimatedScore value={opponentGuess?.score ?? 0} duration={600} />
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">
                       {opponentGuess?.timedOut ? 'Timed Out' : `${Math.round(opponentGuess?.distanceKm ?? 0)} km`}
@@ -190,7 +193,7 @@ export const MultiplayerRoundResults: React.FC = () => {
               /* CLASSIC / TIME ATTACK LEADERBOARD PANEL */
               <div>
                 <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-                  {gameSession.gameType === 'time_attack' ? (
+                  {isTimeAttack ? (
                     <>
                       <Zap className="w-4 h-4 text-amber-400 fill-amber-400" /> Time Attack Leaderboard
                     </>
@@ -204,9 +207,11 @@ export const MultiplayerRoundResults: React.FC = () => {
                 <div className="space-y-2">
                   {currentRoundResult.guesses.map((guess, idx) => {
                     const playerStanding = gameSession.standings.find(s => s.playerId === guess.playerId);
-                    const isTimeAttack = gameSession.gameType === 'time_attack';
                     const baseScore = guess.baseScore ?? Math.round(guess.score);
                     const multiplier = guess.timeMultiplier ?? 1.0;
+                    const maxScore = isTimeAttack ? 7500 : 5000;
+                    const tier = getScoreTier(guess.score, maxScore);
+                    const tierStyle = getScoreTierStyles(tier);
 
                     return (
                       <div
@@ -244,8 +249,8 @@ export const MultiplayerRoundResults: React.FC = () => {
                         </div>
 
                         <div className="text-right">
-                          <span className="font-mono font-black text-emerald-400 text-sm">
-                            +{Math.round(guess.score)} pts
+                          <span className={`font-mono font-black text-sm ${tierStyle.textColor}`}>
+                            <AnimatedScore value={guess.score} duration={650} prefix="+" /> pts
                           </span>
                           <div className="text-[10px] text-slate-400">
                             {isTimeAttack && !guess.timedOut && (

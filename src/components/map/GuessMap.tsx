@@ -171,9 +171,9 @@ export const GuessMap: React.FC<GuessMapProps> = ({ className = '', isKeyboardEx
           opacity: 0.85
         }).addTo(map);
 
-        // Fit bounds to show both target & guess with padding
+        // Fit bounds to show both target & guess with smooth animated transition
         const bounds = L.latLngBounds([targetLatLng, guessLatLng]);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12, animate: true, duration: 0.6 });
       }
     } else {
       // Clear result visualizers if playing

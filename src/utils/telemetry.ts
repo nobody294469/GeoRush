@@ -94,6 +94,11 @@ class DevelopmentTelemetryStore {
     this.notify();
   }
 
+  public trackError(description: string) {
+    this.addLog(`StreetView Error: ${description}`);
+    this.notify();
+  }
+
   public setApiMode(mode: 'MOCK' | 'REAL') {
     this.data.apiMode = mode;
     this.addLog(`API Mode set to ${mode}`);

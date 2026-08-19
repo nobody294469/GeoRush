@@ -105,48 +105,18 @@ export function setupSocketHandlers(
     });
 
     // 5. Game Start (Host requests game start)
-    socket.on('game:start', (callback) => {
+    socket.on('game:start', async (callback) => {
       try {
-        const res = roomManager.startGameSession(socket.id);
-        if (res.success && res.room && res.candidateSeed) {
-          const publicRoom = toPublicRoom(res.room);
-          io.to(publicRoom.code).emit('room:updated', publicRoom);
-          if (callback) callback({ success: true, room: publicRoom });
-
-          // Request host to perform Street View resolution for candidateSeed
-          socket.emit('game:resolve_target_request', {
-            roundIndex: res.room.gameSession?.currentRound || 1,
-            candidateSeed: res.candidateSeed
-          });
-        } else {
-          if (callback) callback({ success: false, error: res.error || 'Could not start game.' });
-        }
-      } catch (err: any) {
-        if (callback) callback({ success: false, error: err.message || 'Failed to start game.' });
-      }
-    });
-
-    // 6. Host Target Resolution Response
-    socket.on('game:resolve_target_response', (payload: TargetResolutionResult, callback) => {
-      try {
-        if (payload.failed) {
-          const res = roomManager.handleTargetResolutionFailure(socket.id, payload);
-          if (res.success && res.room && res.candidateSeed) {
-            const publicRoom = toPublicRoom(res.room);
-            io.to(publicRoom.code).emit('room:updated', publicRoom);
-            socket.emit('game:resolve_target_request', {
-              roundIndex: res.room.gameSession?.currentRound || 1,
-              candidateSeed: res.candidateSeed
-            });
-          } else {
-             io.to(res.room?.code || '').emit('error', { message: res.error || 'Failed to resolve target after multiple attempts.' });
-          }
-          if (callback) callback({ success: false, error: res.error || 'Target resolution failed.' });
+        const startRes = roomManager.startGameSession(socket.id);
+        if (!startRes.success || !startRes.room) {
+          if (callback) callback({ success: false, error: startRes.error || 'Could not start game.' });
           return;
         }
 
+        const roomCode = startRes.room.code;
+
         const timerExpireHandler = () => {
-          const room = roomManager.getPlayerRoom(socket.id);
+          const room = roomManager.getRoom(roomCode);
           if (room && room.gameSession) {
             const endRes = roomManager.endRound(room.code);
             if (endRes.success && endRes.session && endRes.roundResult && endRes.room) {
@@ -160,24 +130,24 @@ export function setupSocketHandlers(
           }
         };
 
-        const res = roomManager.activateTargetFromHost(socket.id, payload, timerExpireHandler);
-        if (res.success && res.room && res.activeTarget && res.session) {
-          const publicRoom = toPublicRoom(res.room);
+        const resolveRes = await roomManager.resolveAndActivateCurrentRound(roomCode, timerExpireHandler);
+        if (resolveRes.success && resolveRes.room && resolveRes.activeTarget && resolveRes.session) {
+          const publicRoom = toPublicRoom(resolveRes.room);
           if (callback) callback({ success: true, room: publicRoom });
           io.to(publicRoom.code).emit('room:updated', publicRoom);
           io.to(publicRoom.code).emit('game:round_started', {
-            session: res.session,
-            activeTarget: res.activeTarget
+            session: resolveRes.session,
+            activeTarget: resolveRes.activeTarget
           });
         } else {
-          if (callback) callback({ success: false, error: res.error || 'Failed to activate target.' });
+          if (callback) callback({ success: false, error: resolveRes.error || 'Failed to resolve target location.' });
         }
       } catch (err: any) {
-        if (callback) callback({ success: false, error: err.message || 'Failed to process target resolution.' });
+        if (callback) callback({ success: false, error: err.message || 'Failed to start game.' });
       }
     });
 
-    // 7. Submit Guess
+    // 6. Submit Guess
     socket.on('game:submit_guess', (payload, callback) => {
       try {
         const res = roomManager.submitGuess(
@@ -220,25 +190,50 @@ export function setupSocketHandlers(
       }
     });
 
-    // 8. Next Round (Host triggers next round)
-    socket.on('game:next_round', (callback) => {
+    // 7. Next Round (Host triggers next round)
+    socket.on('game:next_round', async (callback) => {
       try {
         const res = roomManager.nextRound(socket.id);
-        if (res.success && res.room && res.session) {
-          const publicRoom = toPublicRoom(res.room);
+        if (!res.success || !res.room || !res.session) {
+          if (callback) callback({ success: false, error: res.error || 'Failed to advance to next round.' });
+          return;
+        }
+
+        const roomCode = res.room.code;
+        const publicRoom = toPublicRoom(res.room);
+
+        if (res.finished) {
           if (callback) callback({ success: true, room: publicRoom });
           io.to(publicRoom.code).emit('room:updated', publicRoom);
-
-          if (res.finished) {
-            io.to(publicRoom.code).emit('game:finished', { session: res.session });
-          } else if (res.candidateSeed) {
-            socket.emit('game:resolve_target_request', {
-              roundIndex: res.session.currentRound,
-              candidateSeed: res.candidateSeed
-            });
-          }
+          io.to(publicRoom.code).emit('game:finished', { session: res.session });
         } else {
-          if (callback) callback({ success: false, error: res.error || 'Failed to advance to next round.' });
+          const timerExpireHandler = () => {
+            const room = roomManager.getRoom(roomCode);
+            if (room && room.gameSession) {
+              const endRes = roomManager.endRound(room.code);
+              if (endRes.success && endRes.session && endRes.roundResult && endRes.room) {
+                const pubRoom = toPublicRoom(endRes.room);
+                io.to(pubRoom.code).emit('room:updated', pubRoom);
+                io.to(pubRoom.code).emit('game:round_ended', {
+                  session: endRes.session,
+                  roundResult: endRes.roundResult
+                });
+              }
+            }
+          };
+
+          const resolveRes = await roomManager.resolveAndActivateCurrentRound(roomCode, timerExpireHandler);
+          if (resolveRes.success && resolveRes.room && resolveRes.activeTarget && resolveRes.session) {
+            const activePublicRoom = toPublicRoom(resolveRes.room);
+            if (callback) callback({ success: true, room: activePublicRoom });
+            io.to(activePublicRoom.code).emit('room:updated', activePublicRoom);
+            io.to(activePublicRoom.code).emit('game:round_started', {
+              session: resolveRes.session,
+              activeTarget: resolveRes.activeTarget
+            });
+          } else {
+            if (callback) callback({ success: false, error: resolveRes.error || 'Failed to resolve target location.' });
+          }
         }
       } catch (err: any) {
         if (callback) callback({ success: false, error: err.message || 'Error advancing to next round.' });

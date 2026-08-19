@@ -116,20 +116,6 @@ export async function runTimeAttackSerializationTests() {
       assert((updatedRoom as any).gameSession === undefined, 'room:updated payload has no raw gameSession');
     });
 
-    // Handle target resolution request on host
-    hostClient.on('game:resolve_target_request', ({ roundIndex, candidateSeed }) => {
-      hostClient.emit('game:resolve_target_response', {
-        roundIndex,
-        candidateId: candidateSeed.candidateId,
-        resolvedLat: candidateSeed.latitude,
-        resolvedLng: candidateSeed.longitude,
-        country: 'Equator'
-      }, (res) => {
-        assert(res.success === true, 'Host target resolution response succeeded');
-        assert((res.room as any)?.gameSession === undefined, 'Target resolution response callback room has no raw gameSession');
-      });
-    });
-
     // Start game
     await new Promise<void>((resolve) => {
       hostClient.emit('game:start', (res) => {

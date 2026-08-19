@@ -142,18 +142,6 @@ async function runSocketHandlerTests() {
       });
     });
 
-    // Handle target resolution request on host
-    csClient1.on('game:resolve_target_request', ({ roundIndex, candidateSeed }) => {
-      csClient1.emit('game:resolve_target_response', {
-        roundIndex,
-        candidateId: candidateSeed.candidateId,
-        resolvedLat: candidateSeed.latitude,
-        resolvedLng: candidateSeed.longitude,
-        country: 'United States',
-        countryCode: 'US'
-      });
-    });
-
     // Start game
     await new Promise<void>((resolve) => {
       csClient1.emit('game:start', (res: RoomActionResponse) => {
@@ -169,15 +157,19 @@ async function runSocketHandlerTests() {
       });
     });
 
-    // Submit guesses over socket payload: Player A submits correct countryCode 'US', Player B submits wrong countryCode 'FR'
+    // Submit guesses over socket payload: Player A submits correct countryCode, Player B submits wrong countryCode
+    const currentSession = roomManager.getRoom(csRoomCode)?.gameSession as any;
+    const targetCountryCode = currentSession?.secretTarget?.countryCode || 'AU';
+    const wrongCountryCode = targetCountryCode === 'US' ? 'FR' : 'US';
+
     await new Promise<void>((resolve) => {
       csClient1.emit('game:submit_guess', {
         roundIndex: 1,
         latitude: 0,
         longitude: 0,
-        countryCode: 'US'
+        countryCode: targetCountryCode
       }, (res) => {
-        assert(res.success === true, 'Player A submit_guess with countryCode: US succeeded');
+        assert(res.success === true, `Player A submit_guess with countryCode: ${targetCountryCode} succeeded`);
         resolve();
       });
     });
@@ -187,9 +179,9 @@ async function runSocketHandlerTests() {
         roundIndex: 1,
         latitude: 0,
         longitude: 0,
-        countryCode: 'FR'
+        countryCode: wrongCountryCode
       }, (res) => {
-        assert(res.success === true, 'Player B submit_guess with countryCode: FR succeeded');
+        assert(res.success === true, `Player B submit_guess with countryCode: ${wrongCountryCode} succeeded`);
         resolve();
       });
     });

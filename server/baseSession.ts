@@ -92,7 +92,7 @@ export abstract class AbstractBaseSession {
     return seed;
   }
 
-  public activateRoundFromHostResolution(
+  public activateRoundFromResolution(
     resolution: TargetResolutionResult,
     onTimerExpire?: () => void,
     players?: RoomPlayer[]
@@ -132,6 +132,7 @@ export abstract class AbstractBaseSession {
     this.activeTarget = {
       roundIndex: this.currentRound,
       panoId,
+      apiMode: resolution.apiMode || 'MOCK',
       mockLocationId: (!panoId && resolution.apiMode !== 'REAL') ? this.pendingCandidateSeed?.candidateId : undefined,
       initialHeading: resolution.heading ?? this.pendingCandidateSeed?.heading ?? 0,
       initialPitch: resolution.pitch ?? this.pendingCandidateSeed?.pitch ?? 0
@@ -156,6 +157,14 @@ export abstract class AbstractBaseSession {
       activeTarget: this.activeTarget,
       session: this.toPublicSession(players || [])
     };
+  }
+
+  public activateRoundFromHostResolution(
+    resolution: TargetResolutionResult,
+    onTimerExpire?: () => void,
+    players?: RoomPlayer[]
+  ) {
+    return this.activateRoundFromResolution(resolution, onTimerExpire, players);
   }
 
   public submitGuess(

@@ -6,12 +6,9 @@ import {
   MultiplayerGameSession,
   ActiveRoundTarget,
   RoundResult,
-  TargetResolutionResult,
   ClientToServerEvents,
   ServerToClientEvents
 } from '../shared/types/multiplayer';
-import { resolveCandidateLocation } from '../utils/streetViewResolver';
-import { CandidateLocation } from '../types/game';
 
 interface MultiplayerContextType {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
@@ -88,64 +85,6 @@ export const MultiplayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setActiveTarget(null);
       setCurrentRoundResult(null);
       setError(`Room closed: ${reason}`);
-    });
-
-    s.on('game:resolve_target_request', async ({ roundIndex, candidateSeed }) => {
-      setIsResolvingTarget(true);
-      try {
-        const apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
-        const apiMode = apiKey ? 'REAL' : 'MOCK';
-
-        const candLocation: CandidateLocation = {
-          id: candidateSeed.candidateId,
-          latitude: candidateSeed.latitude,
-          longitude: candidateSeed.longitude,
-          country: candidateSeed.country,
-          countryCode: 'XX',
-          region: 'Unknown',
-          continent: 'Unknown',
-          environment: 'urban',
-          difficulty: 'medium',
-          verificationStatus: 'verified'
-        };
-
-        const resolved = await resolveCandidateLocation(candLocation, apiKey, apiMode);
-
-        if (apiMode === 'REAL' && !resolved) {
-          throw new Error('Target resolution failed in REAL mode.');
-        }
-
-        const targetResult: TargetResolutionResult = {
-          roundIndex,
-          candidateId: candidateSeed.candidateId,
-          apiMode,
-          panoId: resolved?.panoId || '',
-          resolvedLat: resolved?.lat ?? candidateSeed.latitude,
-          resolvedLng: resolved?.lng ?? candidateSeed.longitude,
-          country: resolved?.country || candidateSeed.country,
-          locationName: resolved?.name || candidateSeed.locationName,
-          heading: resolved?.heading ?? candidateSeed.heading,
-          pitch: resolved?.pitch ?? candidateSeed.pitch
-        };
-
-        s.emit('game:resolve_target_response', targetResult);
-      } catch (err: any) {
-        console.error('Host target resolution failed:', err);
-        s.emit('game:resolve_target_response', {
-          roundIndex,
-          candidateId: candidateSeed.candidateId,
-          resolvedLat: candidateSeed.latitude,
-          resolvedLng: candidateSeed.longitude,
-          country: candidateSeed.country,
-          locationName: candidateSeed.locationName,
-          heading: candidateSeed.heading,
-          pitch: candidateSeed.pitch,
-          failed: true,
-          error: err.message
-        });
-      } finally {
-        setIsResolvingTarget(false);
-      }
     });
 
     s.on('game:round_started', ({ session, activeTarget: target }) => {
