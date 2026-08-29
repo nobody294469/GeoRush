@@ -21,39 +21,39 @@ export const MultiplayerLobby: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-3xl bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-8">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-6">
           <div>
-            <span className="text-xs font-semibold tracking-widest text-emerald-400 uppercase">Multiplayer Room</span>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-              Lobby <Users className="w-6 h-6 text-emerald-400" />
+            <span className="text-xs font-bold tracking-widest text-emerald-700 uppercase">Multiplayer Room</span>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+              Lobby <Users className="w-6 h-6 text-emerald-600" />
             </h1>
           </div>
 
           {/* Room Code Badge */}
-          <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700/80 rounded-xl p-2.5 px-4 shadow-inner">
+          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-2.5 px-4 shadow-xs">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Room Code</span>
-              <span className="text-2xl font-black font-mono tracking-widest text-emerald-400">{room.code}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Room Code</span>
+              <span className="text-2xl font-black font-mono tracking-widest text-emerald-700">{room.code}</span>
             </div>
             <button
               onClick={handleCopyCode}
-              className="p-2 bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 rounded-lg transition duration-150 flex items-center gap-1 text-xs font-medium"
+              className="p-2 bg-white hover:bg-slate-100 border border-slate-200 active:scale-95 text-slate-700 rounded-xl transition duration-150 flex items-center gap-1 text-xs font-medium cursor-pointer shadow-xs"
               title="Copy Room Code"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-600" />}
               <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3.5 rounded-xl text-sm flex items-center justify-between">
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-sm flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={clearError} className="text-xs text-rose-300 hover:text-white underline">
+            <button onClick={clearError} className="text-xs text-rose-800 hover:text-rose-950 underline font-bold cursor-pointer">
               Dismiss
             </button>
           </div>
@@ -64,9 +64,9 @@ export const MultiplayerLobby: React.FC = () => {
           {/* Players List (2 columns) */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 Connected Players
-                <span className="text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-mono bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
                   {room.players.length} / 8
                 </span>
               </h2>
@@ -78,30 +78,30 @@ export const MultiplayerLobby: React.FC = () => {
                 return (
                   <div
                     key={p.id}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border transition ${
+                    className={`flex items-center justify-between p-3.5 rounded-2xl border transition ${
                       isMe
-                        ? 'bg-slate-800/90 border-emerald-500/40 shadow-sm'
-                        : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/70'
+                        ? 'bg-emerald-50/70 border-emerald-200 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
-                          p.isHost ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700 text-slate-200'
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
+                          p.isHost ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-slate-200 text-slate-700'
                         }`}
                       >
                         {p.displayName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-slate-100 flex items-center gap-1.5">
+                        <span className="font-bold text-slate-900 flex items-center gap-1.5">
                           {p.displayName}
-                          {isMe && <span className="text-xs text-emerald-400 font-normal">(You)</span>}
+                          {isMe && <span className="text-xs text-emerald-700 font-normal">(You)</span>}
                         </span>
-                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
                           {p.status === 'CONNECTED' ? (
                             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                           ) : (
-                            <WifiOff className="w-3 h-3 text-rose-400" />
+                            <WifiOff className="w-3 h-3 text-rose-500" />
                           )}
                           {p.status === 'CONNECTED' ? 'Ready' : 'Disconnected'}
                         </span>
@@ -109,8 +109,8 @@ export const MultiplayerLobby: React.FC = () => {
                     </div>
 
                     {p.isHost && (
-                      <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1">
-                        <Crown className="w-3.5 h-3.5" /> Host
+                      <span className="bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-xs">
+                        <Crown className="w-3.5 h-3.5 text-amber-600" /> Host
                       </span>
                     )}
                   </div>
@@ -120,16 +120,16 @@ export const MultiplayerLobby: React.FC = () => {
           </div>
 
           {/* Room Settings (1 column) */}
-          <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Settings className="w-4 h-4 text-emerald-400" /> Settings
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Settings className="w-4 h-4 text-emerald-600" /> Settings
                 </h2>
                 {isHost && (
                   <button
                     onClick={() => setIsEditingSettings(!isEditingSettings)}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 underline"
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
                   >
                     {isEditingSettings ? 'Done' : 'Edit'}
                   </button>
@@ -138,8 +138,8 @@ export const MultiplayerLobby: React.FC = () => {
 
               {/* Game Type (Classic vs Duels vs Country Streak) */}
               <div className="space-y-1">
-                <label className="text-xs text-slate-400 flex items-center gap-1">
-                  <Gamepad2 className="w-3.5 h-3.5 text-amber-400" /> Game Type
+                <label className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <Gamepad2 className="w-3.5 h-3.5 text-amber-600" /> Game Type
                 </label>
                 {isHost && isEditingSettings ? (
                   <select
@@ -159,7 +159,7 @@ export const MultiplayerLobby: React.FC = () => {
                         }
                       }
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 font-medium"
                   >
                     <option value="classic">Classic (Standard Multi-round)</option>
                     <option value="duels">Duels (1v1 Health & Multipliers)</option>
@@ -168,7 +168,7 @@ export const MultiplayerLobby: React.FC = () => {
                   </select>
                 ) : (
                   <div>
-                    <p className="text-lg font-bold text-slate-100 uppercase tracking-wider">
+                    <p className="text-base font-black text-slate-900 uppercase tracking-wider">
                       {(room.settings.gameType || 'classic') === 'duels'
                         ? '⚔️ Duels (1v1 HP)'
                         : room.settings.gameType === 'country_streak'
@@ -177,7 +177,7 @@ export const MultiplayerLobby: React.FC = () => {
                         ? '⚡ Time Attack'
                         : '🏆 Classic'}
                     </p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
                       {(room.settings.gameType || 'classic') === 'duels'
                         ? '2 Players • 6000 HP each • Score difference deals damage'
                         : room.settings.gameType === 'country_streak'
@@ -192,14 +192,14 @@ export const MultiplayerLobby: React.FC = () => {
 
               {/* Rounds */}
               <div className="space-y-1">
-                <label className="text-xs text-slate-400 flex items-center gap-1">
-                  <Flame className="w-3.5 h-3.5 text-amber-400" /> Rounds
+                <label className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <Flame className="w-3.5 h-3.5 text-amber-600" /> Rounds
                 </label>
                 {isHost && isEditingSettings ? (
                   <select
                     value={room.settings.maxRounds}
                     onChange={(e) => handleSettingsChange('maxRounds', parseInt(e.target.value, 10))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 font-medium"
                   >
                     {room.settings.gameType === 'duels' ? (
                       [5, 10, 15, 20].map((num) => (
@@ -212,7 +212,7 @@ export const MultiplayerLobby: React.FC = () => {
                     )}
                   </select>
                 ) : (
-                  <p className="text-lg font-bold text-slate-100">
+                  <p className="text-base font-bold text-slate-900">
                     {room.settings.maxRounds} {room.settings.gameType === 'duels' ? 'Rounds Max Cap' : 'Rounds'}
                   </p>
                 )}
@@ -220,15 +220,15 @@ export const MultiplayerLobby: React.FC = () => {
 
               {/* Time Limit */}
               <div className="space-y-1">
-                <label className="text-xs text-slate-400 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-cyan-400" /> Time Limit
+                <label className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-cyan-600" /> Time Limit
                 </label>
                 {isHost && isEditingSettings ? (
                   <select
                     value={room.settings.gameType === 'time_attack' ? 30 : room.settings.timeLimitSeconds}
                     onChange={(e) => handleSettingsChange('timeLimitSeconds', parseInt(e.target.value, 10))}
                     disabled={room.settings.gameType === 'time_attack'}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {room.settings.gameType === 'time_attack' ? (
                       <option value={30}>30 Seconds (Fixed for Time Attack)</option>
@@ -243,7 +243,7 @@ export const MultiplayerLobby: React.FC = () => {
                     )}
                   </select>
                 ) : (
-                  <p className="text-lg font-bold text-slate-100">
+                  <p className="text-base font-bold text-slate-900">
                     {room.settings.gameType === 'time_attack'
                       ? '30s per round (Fixed)'
                       : room.settings.timeLimitSeconds > 0
@@ -255,15 +255,15 @@ export const MultiplayerLobby: React.FC = () => {
 
               {/* Map Selection */}
               <div className="space-y-1">
-                <label className="text-xs text-slate-400 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Map
+                <label className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Map
                 </label>
                 {isHost && isEditingSettings ? (
                   <select
                     value={room.settings.gameType === 'country_streak' ? 'world' : (room.settings.mapId || 'world')}
                     onChange={(e) => handleSettingsChange('mapId', e.target.value)}
                     disabled={room.settings.gameType === 'country_streak'}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     <option value="world">World</option>
                     <option value="europe">Europe</option>
@@ -275,7 +275,7 @@ export const MultiplayerLobby: React.FC = () => {
                     <option value="oceania">Oceania</option>
                   </select>
                 ) : (
-                  <p className="text-lg font-bold text-slate-100 capitalize">
+                  <p className="text-base font-bold text-slate-900 capitalize">
                     {room.settings.gameType === 'country_streak'
                       ? 'World Map (Fixed for Streak)'
                       : MAP_PRESETS[room.settings.mapId || 'world']?.name || room.settings.mapId || 'World'}
@@ -285,25 +285,25 @@ export const MultiplayerLobby: React.FC = () => {
 
               {/* Game Mode */}
               <div className="space-y-1">
-                <label className="text-xs text-slate-400 flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-purple-400" /> Mode
+                <label className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 text-purple-600" /> Mode
                 </label>
                 {isHost && isEditingSettings ? (
                   <select
                     value={room.settings.gameMode}
                     onChange={(e) => handleSettingsChange('gameMode', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 font-medium"
                   >
                     <option value="normal">Normal (Standard Scoring)</option>
                     <option value="pro">Pro Mode (Strict Penalty)</option>
                   </select>
                 ) : (
-                  <p className="text-lg font-bold text-slate-100 capitalize">{room.settings.gameMode} Mode</p>
+                  <p className="text-base font-bold text-slate-900 capitalize">{room.settings.gameMode} Mode</p>
                 )}
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-400 border-t border-slate-700/50 pt-3">
+            <div className="text-[11px] text-slate-500 border-t border-slate-200 pt-3">
               {isHost ? 'You are the host. You control the game settings and start time.' : 'Waiting for the host to start the game...'}
             </div>
           </div>
@@ -311,8 +311,8 @@ export const MultiplayerLobby: React.FC = () => {
 
         {/* Duels warning banner if player count != 2 */}
         {room.settings.gameType === 'duels' && room.players.length !== 2 && (
-          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs rounded-xl p-3 flex items-center gap-2">
-            <Swords className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-2xl p-3 flex items-center gap-2">
+            <Swords className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
               <strong>Duels Mode:</strong> Exactly 2 players are required to start a Duel match. (Currently {room.players.length} {room.players.length === 1 ? 'player' : 'players'}).
             </span>
@@ -320,10 +320,10 @@ export const MultiplayerLobby: React.FC = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800 pt-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 pt-6">
           <button
             onClick={leaveRoom}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
           >
             <LogOut className="w-4 h-4" /> Leave Lobby
           </button>
@@ -336,11 +336,11 @@ export const MultiplayerLobby: React.FC = () => {
                 room.players.length === 0 ||
                 (room.settings.gameType === 'duels' && room.players.length !== 2)
               }
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-extrabold text-base transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
             >
               {isResolvingTarget ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Resolving Street View...
                 </>
               ) : (
@@ -350,8 +350,8 @@ export const MultiplayerLobby: React.FC = () => {
               )}
             </button>
           ) : (
-            <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               Waiting for host to start...
             </div>
           )}

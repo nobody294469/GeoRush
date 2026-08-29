@@ -54,10 +54,10 @@ export function getProximityWeightMultiplier(
 /**
  * Utility to shuffle an array in place using Fisher-Yates
  */
-function shuffleArray<T>(array: T[]): T[] {
+function shuffleArray<T>(array: T[], randomFn: () => number = Math.random): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(randomFn() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
@@ -70,7 +70,8 @@ export function selectCandidateLocations(
   count: number = 5,
   usedIds: Set<string> = new Set(),
   candidates: CandidateLocation[] = GAMEPLAY_CANDIDATE_LOCATIONS,
-  policy: DistributionPolicy = 'WORLD_BALANCED'
+  policy: DistributionPolicy = 'WORLD_BALANCED',
+  randomFn: () => number = Math.random
 ): CandidateLocation[] {
   // Filter out candidates already used or marked unavailable
   const availableCandidates = candidates.filter(
@@ -91,11 +92,11 @@ export function selectCandidateLocations(
   switch (policy) {
     case 'WORLD_BALANCED':
     case 'CONTINENT_BALANCED':
-      return applyWorldBalancedPolicy(pool, count);
+      return applyWorldBalancedPolicy(pool, count, randomFn);
     case 'CURATED':
     case 'COUNTRY_FILTERED':
     default:
-      return applyWorldBalancedPolicy(pool, count);
+      return applyWorldBalancedPolicy(pool, count, randomFn);
   }
 }
 
@@ -104,20 +105,21 @@ export function selectCandidateLocations(
  */
 function applyWorldBalancedPolicy(
   pool: CandidateLocation[],
-  count: number
+  count: number,
+  randomFn: () => number = Math.random
 ): CandidateLocation[] {
   const selectedBatch: CandidateLocation[] = [];
   const selectedCountries = new Set<string>();
 
   // Group candidates by continent
   const continentMap = new Map<string, CandidateLocation[]>();
-  for (const c of shuffleArray(pool)) {
+  for (const c of shuffleArray(pool, randomFn)) {
     const list = continentMap.get(c.continent) || [];
     list.push(c);
     continentMap.set(c.continent, list);
   }
 
-  const continents = shuffleArray(Array.from(continentMap.keys()));
+  const continents = shuffleArray(Array.from(continentMap.keys()), randomFn);
   let loopSafety = 0;
 
   while (selectedBatch.length < count && loopSafety < 150) {
@@ -143,7 +145,7 @@ function applyWorldBalancedPolicy(
         const proximityMultiplier = getProximityWeightMultiplier(cand, selectedBatch);
 
         // Combined random-weighted score
-        const weight = (Math.random() + 0.1) * countryMultiplier * proximityMultiplier;
+        const weight = (randomFn() + 0.1) * countryMultiplier * proximityMultiplier;
 
         if (weight > highestWeight) {
           highestWeight = weight;

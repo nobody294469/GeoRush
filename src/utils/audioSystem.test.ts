@@ -4,11 +4,25 @@ import {
   isSoundEnabled,
   setSoundEnabled,
   toggleSound,
+  isSfxEnabled,
+  setSfxEnabled,
+  getSfxVolume,
+  setSfxVolume,
+  isAmbientEnabled,
+  setAmbientEnabled,
+  toggleAmbient,
+  getAmbientVolume,
+  setAmbientVolume,
+  getAmbientPreset,
+  setAmbientPreset,
+  getAudioSettings,
   getAudioContext,
   playSound,
   playCountdownTick,
   resetCountdownAudio,
   STORAGE_KEY_SOUND,
+  STORAGE_KEY_SFX,
+  STORAGE_KEY_AMBIENT,
   SOUND_CHANGE_EVENT
 } from './audioSystem';
 
@@ -67,6 +81,48 @@ test('Phase 12D - Audio System & Sound Feedback Unit Tests', async (t) => {
     assert.strictEqual(isSoundEnabled(), true);
   });
 
+  await t.test('SFX and Ambient Audio Settings Preferences', () => {
+    mockStorage.clear();
+
+    // SFX defaults & toggles
+    assert.strictEqual(isSfxEnabled(), true);
+    setSfxEnabled(false);
+    assert.strictEqual(isSfxEnabled(), false);
+    setSfxEnabled(true);
+    assert.strictEqual(isSfxEnabled(), true);
+
+    // SFX volume clamping
+    setSfxVolume(0.5);
+    assert.strictEqual(getSfxVolume(), 0.5);
+    setSfxVolume(1.5); // clamps to 1.0
+    assert.strictEqual(getSfxVolume(), 1.0);
+    setSfxVolume(-0.2); // clamps to 0.0
+    assert.strictEqual(getSfxVolume(), 0.0);
+
+    // Ambient audio defaults & toggles
+    assert.strictEqual(isAmbientEnabled(), false);
+    setAmbientEnabled(true);
+    assert.strictEqual(isAmbientEnabled(), true);
+    toggleAmbient();
+    assert.strictEqual(isAmbientEnabled(), false);
+
+    // Ambient preset & volume
+    setAmbientPreset('breeze');
+    assert.strictEqual(getAmbientPreset(), 'breeze');
+    setAmbientPreset('cosmic');
+    assert.strictEqual(getAmbientPreset(), 'cosmic');
+
+    setAmbientVolume(0.65);
+    assert.strictEqual(getAmbientVolume(), 0.65);
+
+    // Snapshot
+    const snap = getAudioSettings();
+    assert.strictEqual(typeof snap.masterEnabled, 'boolean');
+    assert.strictEqual(typeof snap.sfxEnabled, 'boolean');
+    assert.strictEqual(typeof snap.ambientEnabled, 'boolean');
+    assert.strictEqual(snap.ambientPreset, 'cosmic');
+  });
+
   await t.test('Graceful Failure in Non-Browser / Unavailable Audio Environment', () => {
     // In Node test runner without native browser AudioContext, playSound must execute without throwing
     assert.doesNotThrow(() => {
@@ -76,6 +132,7 @@ test('Phase 12D - Audio System & Sound Feedback Unit Tests', async (t) => {
       playSound('score');
       playSound('excellent');
       playSound('victory');
+      playSound('click');
     });
   });
 

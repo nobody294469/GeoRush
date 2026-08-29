@@ -10,11 +10,23 @@ export interface LocationEngineResolveOptions {
   apiMode: 'MOCK' | 'REAL';
   apiKey?: string;
   mockLocations?: Location[];
+  randomFn?: () => number;
 }
 
 export interface LocationEngineResult {
   locations: Location[];
   error?: string;
+}
+
+function shuffleDeterministic<T>(array: T[], randomFn: () => number): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(randomFn() * (i + 1));
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
 }
 
 /**
@@ -27,11 +39,12 @@ export interface LocationEngineResult {
 export async function resolveSessionLocations(
   options: LocationEngineResolveOptions
 ): Promise<LocationEngineResult> {
-  const { map, count, usedCandidateIds, apiMode, apiKey, mockLocations = [] } = options;
+  const { map, count, usedCandidateIds, apiMode, apiKey, mockLocations = [], randomFn } = options;
 
   // 1. MOCK Mode Branch
   if (apiMode === 'MOCK' || !apiKey) {
-    const shuffledMock = [...mockLocations].sort(() => 0.5 - Math.random()).slice(0, count);
+    const rng = randomFn || Math.random;
+    const shuffledMock = shuffleDeterministic(mockLocations, rng).slice(0, count);
     return { locations: shuffledMock };
   }
 
@@ -48,7 +61,8 @@ export async function resolveSessionLocations(
       needed,
       usedCandidateIds,
       map.candidates,
-      map.distributionPolicy
+      map.distributionPolicy,
+      randomFn
     );
 
     if (candidates.length === 0) {
@@ -58,7 +72,8 @@ export async function resolveSessionLocations(
         needed,
         usedCandidateIds,
         map.candidates,
-        map.distributionPolicy
+        map.distributionPolicy,
+        randomFn
       );
     }
 

@@ -231,17 +231,55 @@ export const TIME_ATTACK_MODE_STRATEGY: GameModeStrategy = {
   }
 };
 
+export const DAILY_CHALLENGE_MODE_STRATEGY: GameModeStrategy = {
+  id: 'daily_challenge',
+  name: 'Daily Challenge',
+  description: 'Daily global challenge: 5 rounds with a fixed 2-minute timer on the World map (Normal Mode)',
+  minPlayers: 1,
+  maxPlayers: 1,
+  defaultMaxRounds: 5,
+  maxAllowedRounds: 5,
+  allowedRulesets: ['normal'],
+  validateSettings: (customSettings, _currentPlayersCount) => {
+    const defaultSettings: RoomSettings = {
+      maxRounds: 5,
+      timeLimitSeconds: 120,
+      gameMode: 'normal',
+      mapId: 'world',
+      gameType: 'daily_challenge'
+    };
+
+    if (!customSettings) {
+      return { valid: true, settings: defaultSettings };
+    }
+
+    // Force mapId to 'world', timeLimitSeconds to 120, maxRounds to 5, gameMode to 'normal'
+    const merged: RoomSettings = {
+      ...defaultSettings,
+      ...customSettings,
+      gameType: 'daily_challenge',
+      mapId: 'world',
+      timeLimitSeconds: 120,
+      maxRounds: 5,
+      gameMode: 'normal'
+    };
+
+    return { valid: true, settings: merged };
+  }
+};
+
 const MODE_REGISTRY: Record<string, GameModeStrategy> = {
   classic: CLASSIC_MODE_STRATEGY,
   duels: DUELS_MODE_STRATEGY,
   country_streak: STREAK_MODE_STRATEGY,
-  time_attack: TIME_ATTACK_MODE_STRATEGY
+  time_attack: TIME_ATTACK_MODE_STRATEGY,
+  daily_challenge: DAILY_CHALLENGE_MODE_STRATEGY
 };
 
 export function getModeStrategy(gameType: GameType = 'classic'): GameModeStrategy {
   const strategy = MODE_REGISTRY[gameType];
   if (!strategy) {
-    throw new Error(`Unsupported game mode: "${gameType}". Supported modes are: classic, duels, country_streak, time_attack.`);
+    throw new Error(`Unsupported game mode: "${gameType}". Supported modes are: classic, duels, country_streak, time_attack, daily_challenge.`);
   }
   return strategy;
 }
@@ -269,7 +307,7 @@ export function validateRoomSettings(
         mapId: 'world',
         gameType: 'classic'
       },
-      error: `Unsupported game type: "${requestedType}". Allowed game types are: classic, duels, country_streak, time_attack.`
+      error: `Unsupported game type: "${requestedType}". Allowed game types are: classic, duels, country_streak, time_attack, daily_challenge.`
     };
   }
 

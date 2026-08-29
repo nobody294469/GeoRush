@@ -6,7 +6,8 @@ import {
   RoundResult, 
   GameSettings, 
   GameRules,
-  TelemetryData 
+  TelemetryData,
+  GAME_MODE_PRESETS
 } from '../types/game';
 import { MOCK_LOCATIONS } from '../data/mockLocations';
 import { devTelemetry } from '../utils/telemetry';
@@ -22,7 +23,28 @@ import {
   getPlayerStats, 
   PersonalBestResult 
 } from '../utils/playerProfile';
+import { 
+  createDailyPrng, 
+  getDailyChallengeInfo, 
+  recordDailyChallengeCompletion, 
+  DailyChallengeInfo, 
+  getDailyDateString 
+} from '../utils/dailyChallenge';
+import { 
+  ChallengeDuelData, 
+  createSeedPrng, 
+  generateChallengeSeed, 
+  saveChallengeResult 
+} from '../utils/challengeManager';
 import { playSound, playCountdownTick, resetCountdownAudio } from '../utils/audioSystem';
+import {
+  loadProgression,
+  addXPAndCheckAchievements,
+  calculateMatchXP,
+  PlayerProgression,
+  Achievement,
+  XPBreakdown
+} from '../utils/progression';
 
 interface GameContextType {
   gameStatus: GameStatus;
@@ -54,6 +76,20 @@ interface GameContextType {
   } | null;
   playerName: string;
   personalBestResult: PersonalBestResult | null;
+  dailyInfo: DailyChallengeInfo;
+  refreshDailyInfo: () => void;
+  
+  // Challenge Duel System
+  activeChallenge: ChallengeDuelData | null;
+  currentSessionSeed: string;
+  startChallengeGame: (challenge: ChallengeDuelData) => void;
+  
+  // Progression & Achievements
+  progression: PlayerProgression;
+  refreshProgression: () => void;
+  latestMatchXP: XPBreakdown | null;
+  newlyUnlockedAchievements: Achievement[];
+  clearNewAchievements: () => void;
   
   // Action Handlers
   startGame: (customSettings?: Partial<GameSettings>) => void;
@@ -119,6 +155,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     guessedCountryCode: string;
   } | null>(null);
 
+  const [dailyInfo, setDailyInfo] = useState<DailyChallengeInfo>(() => getDailyChallengeInfo());
+
+  // Challenge Duel State
+  const [activeChallenge, setActiveChallenge] = useState<ChallengeDuelData | null>(null);
+  const [currentSessionSeed, setCurrentSessionSeed] = useState<string>(() => generateChallengeSeed());
+
+  const refreshDailyInfo = useCallback(() => {
+    setDailyInfo(getDailyChallengeInfo());
+  }, []);
+
+  // Progression & Achievements
+  const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  const [latestMatchXP, setLatestMatchXP] = useState<XPBreakdown | null>(null);
+  const [newlyUnlockedAchievements, setNewlyUnlockedAchievements] = useState<Achievement[]>([]);
+
+  const refreshProgression = useCallback(() => {
+    setProgression(loadProgression());
+  }, []);
+
+  const clearNewAchievements = useCallback(() => {
+    setNewlyUnlockedAchievements([]);
+  }, []);
+
   const sessionIdRef = useRef<string>(`sp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`);
   const isSubmittingRef = useRef<boolean>(false);
   const usedCandidateIdsRef = useRef<Set<string>>(new Set());
@@ -156,13 +215,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       rules: { ...defaultRules, ...customSettings?.rules }
     };
 
-    if (newSettings.modeId === 'country_streak') {
+    let sessionPrng: (() => number) | undefined;
+    const sessionSeed = (customSettings as any)?.seed || generateChallengeSeed();
+    setCurrentSessionSeed(sessionSeed);
+    setActiveChallenge(null);
+
+    if (newSettings.modeId === 'daily_challenge') {
+      const currentDaily = getDailyChallengeInfo();
+      if (currentDaily.isCompletedToday) {
+        setLocationError("You have already completed today's Daily Challenge. Come back at 12:00 AM midnight for the next one!");
+        setGameStatus('IDLE');
+        return;
+      }
+      newSettings.gameMode = 'normal';
+      newSettings.rules = { ...GAME_MODE_PRESETS['normal'], timeLimitSeconds: 120 };
+      newSettings.mapId = 'world';
+      newSettings.maxRounds = 5;
+      sessionPrng = createDailyPrng(getDailyDateString());
+    } else if (newSettings.modeId === 'country_streak') {
       newSettings.mapId = 'world';
       setStreak(0);
       setStreakResult(null);
+      sessionPrng = createSeedPrng(sessionSeed);
     } else if (newSettings.modeId === 'time_attack') {
       newSettings.maxRounds = 5;
       newSettings.rules.timeLimitSeconds = 30;
+      sessionPrng = createSeedPrng(sessionSeed);
+    } else {
+      sessionPrng = createSeedPrng(sessionSeed);
     }
 
     setSettings(newSettings);
@@ -175,10 +255,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const sessionResult = await resolveSessionLocations({
       map: mapToUse,
       count: newSettings.modeId === 'country_streak' ? 1 : newSettings.maxRounds,
-      usedCandidateIds: usedCandidateIdsRef.current,
+      usedCandidateIds: new Set(),
       apiMode: telemetry.apiMode,
       apiKey,
-      mockLocations: MOCK_LOCATIONS
+      mockLocations: MOCK_LOCATIONS,
+      randomFn: sessionPrng
     });
 
     if (sessionResult.error) {
@@ -209,9 +290,80 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessionIdRef.current = `sp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     setPersonalBestResult(null);
     resetCountdownAudio();
-    const initialTimeLimit = newSettings.modeId === 'time_attack'
-      ? 30
-      : (newSettings.rules.timeLimitSeconds > 0 ? newSettings.rules.timeLimitSeconds : null);
+    const initialTimeLimit = newSettings.modeId === 'daily_challenge'
+      ? 120
+      : (newSettings.modeId === 'time_attack'
+        ? 30
+        : (newSettings.rules.timeLimitSeconds > 0 ? newSettings.rules.timeLimitSeconds : null));
+    setTimeRemaining(initialTimeLimit);
+    setGameStatus('PLAYING');
+  }, [telemetry.apiMode]);
+
+  // Start an Asynchronous Challenge Duel Game
+  const startChallengeGame = useCallback(async (challenge: ChallengeDuelData) => {
+    const timeLimitRule = (challenge.timeLimit || 0) as any;
+    const rulesToUse: GameRules = challenge.gameMode === 'pro'
+      ? { ...GAME_MODE_PRESETS['pro'], timeLimitSeconds: timeLimitRule }
+      : { ...GAME_MODE_PRESETS['normal'], timeLimitSeconds: timeLimitRule };
+
+    const newSettings: GameSettings = {
+      maxRounds: challenge.maxRounds || 5,
+      gameMode: challenge.gameMode,
+      modeId: challenge.modeId,
+      rules: rulesToUse,
+      mapType: 'world',
+      mapId: challenge.mapId || 'world'
+    };
+
+    setActiveChallenge(challenge);
+    setCurrentSessionSeed(challenge.seed);
+    setSettings(newSettings);
+    setIsLoadingLocations(true);
+    setLocationError(null);
+
+    const mapToUse = (challenge.mapId && MAP_PRESETS[challenge.mapId]) || WORLD_MAP;
+    const apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+    const challengePrng = createSeedPrng(challenge.seed);
+
+    const sessionResult = await resolveSessionLocations({
+      map: mapToUse,
+      count: challenge.maxRounds || 5,
+      usedCandidateIds: new Set(),
+      apiMode: telemetry.apiMode,
+      apiKey,
+      mockLocations: MOCK_LOCATIONS,
+      randomFn: challengePrng
+    });
+
+    if (sessionResult.error) {
+      console.error(sessionResult.error);
+      setLocationError(sessionResult.error);
+      setIsLoadingLocations(false);
+      setGameStatus('IDLE');
+      return;
+    }
+
+    const resolvedList = sessionResult.locations;
+    setLocations(resolvedList);
+    setCurrentRoundIndex(0);
+    setResults([]);
+    setSelectedGuess(null);
+    setIsStreetViewReady(false);
+    isSubmittingRef.current = false;
+    setIsLoadingLocations(false);
+
+    if (resolvedList.length > 0) {
+      const firstLoc = resolvedList[0];
+      setCurrentNodeId(firstLoc.initialNodeId);
+      devTelemetry.trackSetPano(firstLoc.panoId || firstLoc.initialNodeId);
+      devTelemetry.trackSetPosition(firstLoc.lat, firstLoc.lng);
+    }
+
+    setRoundStartTime(Date.now());
+    sessionIdRef.current = `sp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    setPersonalBestResult(null);
+    resetCountdownAudio();
+    const initialTimeLimit = challenge.timeLimit > 0 ? challenge.timeLimit : null;
     setTimeRemaining(initialTimeLimit);
     setGameStatus('PLAYING');
   }, [telemetry.apiMode]);
@@ -244,6 +396,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       setPersonalBestResult(pb);
       setBestStreak(pb.currentStats.longestCountryStreak);
+
+      // Award XP for country streak
+      const xpBreakdown = calculateMatchXP({
+        mode: 'country_streak',
+        streakCount: streak
+      });
+      setLatestMatchXP(xpBreakdown);
+
+      const achResult = addXPAndCheckAchievements({
+        earnedXP: xpBreakdown.totalXP,
+        matchContext: {
+          mode: 'country_streak',
+          streak: streak,
+          totalGamesPlayed: pb.currentStats.totalGamesPlayed
+        }
+      });
+      setProgression(achResult.updatedProgression);
+      if (achResult.newlyUnlocked.length > 0) {
+        setNewlyUnlockedAchievements(achResult.newlyUnlocked);
+      }
     }
 
     setStreakResult({
@@ -403,7 +575,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Timer countdown effect (paused while StreetView is loading or in non-PLAYING state)
   useEffect(() => {
-    const effectiveTimeLimit = settings.modeId === 'time_attack' ? 30 : settings.rules.timeLimitSeconds;
+    const effectiveTimeLimit = settings.modeId === 'daily_challenge'
+      ? 120
+      : (settings.modeId === 'time_attack' ? 30 : settings.rules.timeLimitSeconds);
     if (gameStatus !== 'PLAYING' || !isStreetViewReady || !effectiveTimeLimit || effectiveTimeLimit <= 0) {
       return;
     }
@@ -448,20 +622,70 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsStreetViewReady(false);
       isSubmittingRef.current = false;
       setRoundStartTime(Date.now());
-      const limit = settings.modeId === 'time_attack' 
-        ? 30 
-        : (settings.rules.timeLimitSeconds > 0 ? settings.rules.timeLimitSeconds : null);
+      const limit = settings.modeId === 'daily_challenge'
+        ? 120
+        : (settings.modeId === 'time_attack' 
+          ? 30 
+          : (settings.rules.timeLimitSeconds > 0 ? settings.rules.timeLimitSeconds : null));
       setTimeRemaining(limit);
       setGameStatus('PLAYING');
     } else {
       const finalScore = results.reduce((acc, r) => acc + r.score, 0);
+      const matchMode = settings.modeId === 'daily_challenge' 
+        ? 'daily_challenge' 
+        : (settings.modeId === 'time_attack' ? 'time_attack' : 'classic');
+
       const pb = recordCompletedMatch({
         matchId: sessionIdRef.current,
-        mode: settings.modeId === 'time_attack' ? 'time_attack' : 'classic',
+        mode: matchMode,
         score: finalScore,
         mapId: settings.mapId
       });
       setPersonalBestResult(pb);
+
+      if (settings.modeId === 'daily_challenge') {
+        const roundScores = results.map(r => r.score);
+        recordDailyChallengeCompletion(finalScore, roundScores);
+        setDailyInfo(getDailyChallengeInfo());
+      }
+
+      if (activeChallenge) {
+        saveChallengeResult(activeChallenge.seed, finalScore);
+      }
+
+      // Calculate XP Breakdown & Check Achievements
+      const roundDistances = results.map(r => r.distanceKm);
+      const roundScores = results.map(r => r.score);
+      const roundTimesSeconds = results.map(r => r.timeTakenSeconds);
+
+      const xpBreakdown = calculateMatchXP({
+        totalScore: finalScore,
+        roundDistances,
+        roundScores,
+        roundTimesSeconds,
+        mode: matchMode
+      });
+      setLatestMatchXP(xpBreakdown);
+
+      const currentDaily = getDailyChallengeInfo();
+      const achResult = addXPAndCheckAchievements({
+        earnedXP: xpBreakdown.totalXP,
+        matchContext: {
+          score: finalScore,
+          mode: matchMode,
+          mapId: settings.mapId,
+          roundDistances,
+          roundScores,
+          roundTimesSeconds,
+          dailyStreak: currentDaily.currentStreak,
+          totalGamesPlayed: pb.currentStats.totalGamesPlayed
+        }
+      });
+      setProgression(achResult.updatedProgression);
+      if (achResult.newlyUnlocked.length > 0) {
+        setNewlyUnlockedAchievements(achResult.newlyUnlocked);
+      }
+
       setGameStatus('GAME_FINISHED');
     }
   }, [currentRoundIndex, settings.maxRounds, locations, settings.rules.timeLimitSeconds, settings.modeId, results, settings.mapId]);
@@ -475,6 +699,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setResults([]);
     setTimeRemaining(null);
     setPersonalBestResult(null);
+    setLatestMatchXP(null);
+    setNewlyUnlockedAchievements([]);
   }, []);
 
   const toggleTelemetry = useCallback((open?: boolean) => {
@@ -507,6 +733,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         streakResult,
         playerName,
         personalBestResult,
+        dailyInfo,
+        refreshDailyInfo,
+        activeChallenge,
+        currentSessionSeed,
+        startChallengeGame,
+        progression,
+        refreshProgression,
+        latestMatchXP,
+        newlyUnlockedAchievements,
+        clearNewAchievements,
         startGame,
         moveToNode,
         placeGuess,

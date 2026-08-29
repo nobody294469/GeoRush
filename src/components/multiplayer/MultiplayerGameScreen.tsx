@@ -56,7 +56,7 @@ export const MultiplayerGameScreen: React.FC = () => {
     : undefined;
 
   const activeRoundContent = (
-    <div className="relative w-screen h-screen bg-slate-950 overflow-hidden select-none">
+    <div className="relative w-screen h-screen bg-slate-900 overflow-hidden select-none">
       
       {/* Top HUD Bar */}
       {gameSession.gameType === 'country_streak' ? (
@@ -67,23 +67,23 @@ export const MultiplayerGameScreen: React.FC = () => {
         /* DUELS HUD */
         <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
           {/* YOU CARD */}
-          <div className="pointer-events-auto bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 sm:p-3 shadow-xl backdrop-blur-md flex items-center gap-3 min-w-[140px] sm:min-w-[180px]">
+          <div className="pointer-events-auto bg-white/95 border border-slate-200 rounded-2xl p-2.5 sm:p-3 shadow-xl backdrop-blur-md flex items-center gap-3 min-w-[140px] sm:min-w-[180px]">
             <div className="flex-1">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
-                <span className="text-emerald-400 truncate max-w-[90px] sm:max-w-[120px]">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
+                <span className="text-emerald-700 truncate max-w-[90px] sm:max-w-[120px]">
                   {myDuelState?.displayName || 'YOU'}
                 </span>
-                <span className="text-amber-400 font-extrabold flex items-center gap-0.5">
+                <span className="text-amber-700 font-extrabold flex items-center gap-0.5">
                   <Swords className="w-3 h-3 inline" /> {(myDuelState?.damageMultiplier ?? 1.0).toFixed(1)}×
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-black text-rose-400">
+              <div className="flex items-center gap-1.5 text-xs font-black text-rose-600">
                 <Heart className="w-4 h-4 fill-rose-500/30 text-rose-500 shrink-0" />
-                <span className="text-base sm:text-lg font-mono">{myDuelState?.hp ?? 6000}</span>
-                <span className="text-[10px] text-slate-500 font-normal">/ 6000</span>
+                <span className="text-base sm:text-lg font-mono text-slate-900">{myDuelState?.hp ?? 6000}</span>
+                <span className="text-[10px] text-slate-400 font-normal">/ 6000</span>
               </div>
               {/* HP Bar */}
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
                 <div
                   className="bg-rose-500 h-full transition-all duration-500"
                   style={{ width: `${Math.max(0, Math.min(100, ((myDuelState?.hp ?? 6000) / 6000) * 100))}%` }}
@@ -94,11 +94,11 @@ export const MultiplayerGameScreen: React.FC = () => {
 
           {/* CENTER MATCH BADGE */}
           <div className="pointer-events-auto flex flex-col items-center gap-1">
-            <div className="bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-2 text-center">
-              <span className="text-xs sm:text-sm font-black text-slate-100 uppercase tracking-widest">
+            <div className="bg-white/95 border border-slate-200 px-3.5 py-1.5 rounded-2xl shadow-xl backdrop-blur-md flex items-center gap-2 text-center">
+              <span className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest">
                 Round {gameSession.currentRound}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono bg-slate-800 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] text-slate-600 font-mono bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md font-bold">
                 Cap {gameSession.maxRounds}
               </span>
             </div>
@@ -106,10 +106,10 @@ export const MultiplayerGameScreen: React.FC = () => {
             {/* Timer if set */}
             {timeLeft !== null && (
               <div
-                className={`px-3 py-1 rounded-lg border shadow-lg backdrop-blur-md flex items-center gap-1 font-mono font-bold text-xs ${
+                className={`px-3 py-1 rounded-xl border shadow-lg backdrop-blur-md flex items-center gap-1 font-mono font-bold text-xs ${
                   timeLeft <= 10
-                    ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse'
-                    : 'bg-slate-900/90 border-slate-800 text-cyan-400'
+                    ? 'bg-rose-100 border-rose-200 text-rose-700 animate-pulse'
+                    : 'bg-white/95 border-slate-200 text-slate-800'
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -119,23 +119,23 @@ export const MultiplayerGameScreen: React.FC = () => {
           </div>
 
           {/* OPPONENT CARD */}
-          <div className="pointer-events-auto bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 sm:p-3 shadow-xl backdrop-blur-md flex items-center gap-3 min-w-[140px] sm:min-w-[180px]">
+          <div className="pointer-events-auto bg-white/95 border border-slate-200 rounded-2xl p-2.5 sm:p-3 shadow-xl backdrop-blur-md flex items-center gap-3 min-w-[140px] sm:min-w-[180px]">
             <div className="flex-1 text-right">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
-                <span className="text-amber-400 font-extrabold flex items-center gap-0.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
+                <span className="text-amber-700 font-extrabold flex items-center gap-0.5">
                   <Swords className="w-3 h-3 inline" /> {(opponentDuelState?.damageMultiplier ?? 1.0).toFixed(1)}×
                 </span>
-                <span className="text-cyan-400 truncate max-w-[90px] sm:max-w-[120px]">
+                <span className="text-cyan-700 truncate max-w-[90px] sm:max-w-[120px]">
                   {opponentDuelState?.displayName || 'OPPONENT'}
                 </span>
               </div>
-              <div className="flex items-center justify-end gap-1.5 text-xs font-black text-rose-400">
-                <span className="text-[10px] text-slate-500 font-normal">6000 /</span>
-                <span className="text-base sm:text-lg font-mono">{opponentDuelState?.hp ?? 6000}</span>
+              <div className="flex items-center justify-end gap-1.5 text-xs font-black text-rose-600">
+                <span className="text-[10px] text-slate-400 font-normal">6000 /</span>
+                <span className="text-base sm:text-lg font-mono text-slate-900">{opponentDuelState?.hp ?? 6000}</span>
                 <Heart className="w-4 h-4 fill-rose-500/30 text-rose-500 shrink-0" />
               </div>
               {/* HP Bar */}
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
                 <div
                   className="bg-rose-500 h-full transition-all duration-500 ml-auto"
                   style={{ width: `${Math.max(0, Math.min(100, ((opponentDuelState?.hp ?? 6000) / 6000) * 100))}%` }}
@@ -148,14 +148,14 @@ export const MultiplayerGameScreen: React.FC = () => {
         /* CLASSIC HUD */
         <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
           {/* Round Badge */}
-          <div className="pointer-events-auto bg-slate-900/90 border border-slate-800 text-slate-100 px-4 py-2 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-3">
+          <div className="pointer-events-auto bg-white/95 border border-slate-200 text-slate-900 px-4 py-2 rounded-2xl shadow-xl backdrop-blur-md flex items-center gap-3">
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Multiplayer</span>
-              <span className="text-sm font-extrabold text-emerald-400">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Multiplayer</span>
+              <span className="text-sm font-black text-emerald-700">
                 Round {gameSession.currentRound} / {gameSession.maxRounds}
               </span>
             </div>
-            <span className="text-xs font-mono bg-slate-800 border border-slate-700/80 px-2.5 py-1 rounded-lg text-slate-300">
+            <span className="text-xs font-mono bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl text-slate-700 font-bold">
               {room?.code}
             </span>
           </div>
@@ -163,21 +163,21 @@ export const MultiplayerGameScreen: React.FC = () => {
           {/* Timer Badge */}
           {timeLeft !== null && (
             <div
-              className={`pointer-events-auto px-5 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-2 font-mono font-black text-lg transition ${
+              className={`pointer-events-auto px-5 py-2 rounded-2xl border shadow-xl backdrop-blur-md flex items-center gap-2 font-mono font-black text-lg transition ${
                 timeLeft <= 10
-                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse'
-                  : 'bg-slate-900/90 border-slate-800 text-cyan-400'
+                  ? 'bg-rose-100 border-rose-200 text-rose-700 animate-pulse'
+                  : 'bg-white/95 border-slate-200 text-slate-800'
               }`}
             >
-              <Clock className="w-5 h-5" />
+              <Clock className="w-5 h-5 text-slate-600" />
               <span>{timeLeft}s</span>
             </div>
           )}
 
           {/* Mode & Compass */}
           <div className="pointer-events-auto flex items-center gap-2">
-            <span className="hidden sm:flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 text-slate-300 text-xs font-bold px-3 py-2 rounded-xl shadow-xl backdrop-blur-md">
-              <Shield className="w-4 h-4 text-purple-400" />
+            <span className="hidden sm:flex items-center gap-1.5 bg-white/95 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-2xl shadow-xl backdrop-blur-md">
+              <Shield className="w-4 h-4 text-purple-600" />
               <span className="capitalize">{gameSession.gameMode}</span>
             </span>
 
@@ -187,7 +187,7 @@ export const MultiplayerGameScreen: React.FC = () => {
       )}
 
       {/* Main Panorama Canvas */}
-      <div className="w-full h-full bg-slate-950 flex items-center justify-center">
+      <div className="w-full h-full bg-slate-100 flex items-center justify-center">
         {isRealMode ? (
           activeTarget?.panoId ? (
             <RealPanoramaViewer
@@ -199,10 +199,10 @@ export const MultiplayerGameScreen: React.FC = () => {
               className="w-full h-full"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-900/90 border border-red-900/50 rounded-2xl shadow-2xl backdrop-blur-md max-w-md">
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-white border border-rose-200 rounded-3xl shadow-2xl backdrop-blur-md max-w-md">
               <Shield className="w-12 h-12 text-rose-500 mb-4 opacity-80" />
-              <h2 className="text-xl font-black text-rose-100 mb-2 tracking-wide uppercase">Target Resolution Failed</h2>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">
+              <h2 className="text-xl font-black text-rose-900 mb-2 tracking-wide uppercase">Target Resolution Failed</h2>
+              <p className="text-sm text-slate-600 font-medium leading-relaxed">
                 A valid Street View panorama could not be resolved for this round. Waiting for server recovery...
               </p>
             </div>
@@ -225,4 +225,3 @@ export const MultiplayerGameScreen: React.FC = () => {
     />
   );
 };
-

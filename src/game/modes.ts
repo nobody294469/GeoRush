@@ -41,10 +41,21 @@ export const TIME_ATTACK_MODE: GameModeDefinition = {
   calculateScore: calculateGeoScore
 };
 
+export const DAILY_CHALLENGE_MODE: GameModeDefinition = {
+  id: 'daily_challenge',
+  name: 'Daily Challenge',
+  description: 'Daily global challenge: 5 rounds with a fixed 2-minute timer on the World map',
+  defaultMaxRounds: 5,
+  defaultMap: WORLD_MAP,
+  calculateDistance: calculateHaversineDistance,
+  calculateScore: calculateGeoScore
+};
+
 export const GAME_MODE_DEFINITIONS: Record<string, GameModeDefinition> = {
   classic: CLASSIC_MODE,
   country_streak: STREAK_MODE,
-  time_attack: TIME_ATTACK_MODE
+  time_attack: TIME_ATTACK_MODE,
+  daily_challenge: DAILY_CHALLENGE_MODE
 };
 
 export * from './modeRegistry';

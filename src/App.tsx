@@ -10,7 +10,11 @@ import { GameSummary } from './components/game/GameSummary';
 import { StartScreen } from './components/game/StartScreen';
 import { MultiplayerLobby } from './components/multiplayer/MultiplayerLobby';
 import { MultiplayerGameScreen } from './components/multiplayer/MultiplayerGameScreen';
-import { RefreshCw, Globe } from 'lucide-react';
+import { FieldGuideModal } from './components/guide/FieldGuideModal';
+import { ShortcutsLegend } from './components/common/ShortcutsLegend';
+import { ChallengeInvitationModal } from './components/game/ChallengeInvitationModal';
+import { parseChallengeUrlParams, clearChallengeUrlParams, ChallengeDuelData } from './utils/challengeManager';
+import { RefreshCw, Globe, BookOpen, Keyboard, Compass } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
   const { 
@@ -23,15 +27,38 @@ const MainLayout: React.FC = () => {
     isStreetViewReady,
     currentRoundIndex,
     restartGame,
-    settings
+    settings,
+    startChallengeGame
   } = useGame();
 
   const [isKeyboardMapExpanded, setIsKeyboardMapExpanded] = useState<boolean>(false);
+  const [isFieldGuideOpen, setIsFieldGuideOpen] = useState<boolean>(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const [pendingChallenge, setPendingChallenge] = useState<ChallengeDuelData | null>(null);
 
-  // Keyboard Shortcuts Listener (Space = Submit/Advance, M = Toggle Map, R = Reset Camera POV)
+  // Check URL params on mount for incoming challenge duel
+  useEffect(() => {
+    const invite = parseChallengeUrlParams();
+    if (invite) {
+      setPendingChallenge(invite);
+    }
+  }, []);
+
+  const handleAcceptChallenge = (challenge: ChallengeDuelData) => {
+    clearChallengeUrlParams();
+    setPendingChallenge(null);
+    startChallengeGame(challenge);
+  };
+
+  const handleDeclineChallenge = () => {
+    clearChallengeUrlParams();
+    setPendingChallenge(null);
+  };
+
+  // Keyboard Shortcuts Listener (Space = Submit/Advance, M = Toggle Map, R/C = Reset Camera POV, G = Guide, ? = Shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Guard 1: Do not trigger if user is typing in an input or textarea
+      // Guard: Do not trigger if user is typing in an input or textarea
       const activeElement = document.activeElement;
       if (
         activeElement &&
@@ -43,20 +70,33 @@ const MainLayout: React.FC = () => {
         return;
       }
 
-      // Shortcut: R = Reset camera POV heading & pitch for current round
-      if (e.code === 'KeyR') {
+      // Shortcut: R or C = Reset camera POV heading & pitch for current round
+      if (e.code === 'KeyR' || e.code === 'KeyC') {
         if (gameStatus === 'PLAYING' && !isLoadingLocations) {
           e.preventDefault();
           resetPOV();
         }
       }
 
-      // Shortcut: M = Toggle / expand guess map
+      // Shortcut: M or Tab = Toggle / expand guess map
       if (e.code === 'KeyM') {
         if (gameStatus === 'PLAYING' && !isLoadingLocations) {
           e.preventDefault();
           setIsKeyboardMapExpanded(prev => !prev);
         }
+      }
+
+      // Shortcut: Slash or Question Mark = Shortcuts legend
+      if (e.key === '?' || (e.shiftKey && e.code === 'Slash')) {
+        e.preventDefault();
+        setIsShortcutsOpen(prev => !prev);
+      }
+
+      // Shortcut: Escape = Close open modals or collapse map
+      if (e.code === 'Escape') {
+        setIsFieldGuideOpen(false);
+        setIsShortcutsOpen(false);
+        setIsKeyboardMapExpanded(false);
       }
 
       // Shortcut: Space = Submit guess (if pin placed) or Advance after round result
@@ -76,11 +116,40 @@ const MainLayout: React.FC = () => {
   }, [gameStatus, selectedGuess, submitGuess, nextRound, resetPOV, isLoadingLocations]);
 
   if (gameStatus === 'IDLE') {
-    return <StartScreen />;
+    return (
+      <>
+        <StartScreen />
+        <ChallengeInvitationModal 
+          challenge={pendingChallenge}
+          onAccept={handleAcceptChallenge}
+          onDecline={handleDeclineChallenge}
+        />
+        <FieldGuideModal 
+          isOpen={isFieldGuideOpen} 
+          onClose={() => setIsFieldGuideOpen(false)} 
+        />
+        <ShortcutsLegend
+          isOpen={isShortcutsOpen}
+          onClose={() => setIsShortcutsOpen(false)}
+        />
+      </>
+    );
   }
 
   if (gameStatus === 'GAME_FINISHED') {
-    return <GameSummary />;
+    return (
+      <>
+        <GameSummary />
+        <FieldGuideModal 
+          isOpen={isFieldGuideOpen} 
+          onClose={() => setIsFieldGuideOpen(false)} 
+        />
+        <ShortcutsLegend
+          isOpen={isShortcutsOpen}
+          onClose={() => setIsShortcutsOpen(false)}
+        />
+      </>
+    );
   }
 
   const showLoadingOverlay = gameStatus === 'PLAYING' && (!isStreetViewReady || isLoadingLocations);
@@ -113,6 +182,29 @@ const MainLayout: React.FC = () => {
           </div>
         )}
 
+        {/* In-Game Floating Speed Controls Bar (Bottom Left) */}
+        {gameStatus === 'PLAYING' && (
+          <div className="absolute bottom-6 left-6 z-30 flex items-center gap-2">
+            <button
+              onClick={resetPOV}
+              className="px-3 py-2 rounded-xl bg-white/95 hover:bg-white text-slate-700 border border-slate-200 shadow-md flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer backdrop-blur-xs"
+              title="Reset starting camera view (Shortcut: R)"
+            >
+              <Compass className="w-3.5 h-3.5 text-teal-600" />
+              <span>Reset POV</span>
+              <kbd className="px-1 py-0.5 rounded bg-slate-100 border border-slate-300 text-[10px] font-mono text-slate-500">R</kbd>
+            </button>
+
+            <button
+              onClick={() => setIsShortcutsOpen(true)}
+              className="p-2 rounded-xl bg-white/95 hover:bg-white text-slate-700 border border-slate-200 shadow-md flex items-center justify-center transition-all active:scale-95 cursor-pointer backdrop-blur-xs"
+              title="View Keyboard Shortcuts"
+            >
+              <Keyboard className="w-4 h-4 text-slate-600" />
+            </button>
+          </div>
+        )}
+
         {/* Mode-specific HUD / Controls */}
         {settings.modeId === 'country_streak' ? (
           <CountryStreakHUD />
@@ -128,6 +220,18 @@ const MainLayout: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Field Guide Modal */}
+      <FieldGuideModal 
+        isOpen={isFieldGuideOpen} 
+        onClose={() => setIsFieldGuideOpen(false)} 
+      />
+
+      {/* Shortcuts Legend */}
+      <ShortcutsLegend
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
     </div>
   );
 };

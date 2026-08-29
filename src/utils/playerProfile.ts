@@ -19,12 +19,14 @@ export interface PlayerStats {
   classicGamesPlayed: number;
   timeAttackGamesPlayed: number;
   countryStreakGamesPlayed: number;
+  dailyChallengeGamesPlayed: number;
   duelsGamesPlayed: number;
   duelsWins: number;
   duelsLosses: number;
   bestOverallScore: number;
   bestClassicScore: number;
   bestTimeAttackScore: number;
+  bestDailyScore: number;
   longestCountryStreak: number;
   bestScoreByMap: Record<string, number>;
   lastPlayedTimestamp?: number;
@@ -32,7 +34,7 @@ export interface PlayerStats {
 
 export interface CompletedMatchData {
   matchId: string; // Unique match identifier for idempotency
-  mode: 'classic' | 'time_attack' | 'country_streak' | 'duels';
+  mode: 'classic' | 'time_attack' | 'country_streak' | 'duels' | 'daily_challenge';
   score?: number;
   mapId?: string;
   streak?: number;
@@ -59,12 +61,14 @@ export const DEFAULT_PLAYER_STATS: PlayerStats = {
   classicGamesPlayed: 0,
   timeAttackGamesPlayed: 0,
   countryStreakGamesPlayed: 0,
+  dailyChallengeGamesPlayed: 0,
   duelsGamesPlayed: 0,
   duelsWins: 0,
   duelsLosses: 0,
   bestOverallScore: 0,
   bestClassicScore: 0,
   bestTimeAttackScore: 0,
+  bestDailyScore: 0,
   longestCountryStreak: 0,
   bestScoreByMap: {}
 };
@@ -266,6 +270,28 @@ export function recordCompletedMatch(match: CompletedMatchData): PersonalBestRes
     const score = match.score ?? 0;
     if (score > 0 && score > currentStats.bestTimeAttackScore) {
       updatedStats.bestTimeAttackScore = score;
+      result.isNewModeBest = true;
+    }
+    if (score > 0 && score > currentStats.bestOverallScore) {
+      updatedStats.bestOverallScore = score;
+      result.isNewBestOverall = true;
+    }
+
+    if (match.mapId) {
+      const prevMapBest = currentStats.bestScoreByMap[match.mapId] || 0;
+      result.previousMapBest = prevMapBest;
+      if (score > 0 && score > prevMapBest) {
+        updatedStats.bestScoreByMap[match.mapId] = score;
+        result.isNewMapBest = true;
+      }
+    }
+  } else if (match.mode === 'daily_challenge') {
+    updatedStats.dailyChallengeGamesPlayed = (updatedStats.dailyChallengeGamesPlayed || 0) + 1;
+    result.previousModeBest = currentStats.bestDailyScore || 0;
+
+    const score = match.score ?? 0;
+    if (score > 0 && score > (currentStats.bestDailyScore || 0)) {
+      updatedStats.bestDailyScore = score;
       result.isNewModeBest = true;
     }
     if (score > 0 && score > currentStats.bestOverallScore) {

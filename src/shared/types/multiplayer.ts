@@ -18,7 +18,7 @@ export type RoomState =
   | 'GAME_FINISHED'
   | 'CANCELLED';
 
-export type GameType = 'classic' | 'duels' | 'country_streak' | 'time_attack';
+export type GameType = 'classic' | 'duels' | 'country_streak' | 'time_attack' | 'daily_challenge';
 
 export interface RoomSettings {
   maxRounds: number;

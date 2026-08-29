@@ -10,7 +10,7 @@ interface GoogleGuessMapProps {
 }
 
 export const GoogleGuessMap: React.FC<GoogleGuessMapProps> = ({ apiKey, isExpanded }) => {
-  const { gameStatus, selectedGuess, placeGuess, clearGuess, results, submitGuess } = useGame();
+  const { gameStatus, currentRoundIndex, selectedGuess, placeGuess, clearGuess, results, submitGuess } = useGame();
   const lastRoundResult = results[results.length - 1];
 
   const placeGuessRef = useRef(placeGuess);
@@ -23,6 +23,27 @@ export const GoogleGuessMap: React.FC<GoogleGuessMapProps> = ({ apiKey, isExpand
   const linePolylineRef = useRef<google.maps.Polyline | null>(null);
 
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
+  const [mapType, setMapType] = useState<'hybrid' | 'roadmap'>('hybrid');
+
+  // Switch map type on demand
+  const handleToggleMapType = (newType: 'hybrid' | 'roadmap') => {
+    setMapType(newType);
+    if (googleMapRef.current && window.google) {
+      googleMapRef.current.setMapTypeId(
+        newType === 'hybrid' ? window.google.maps.MapTypeId.HYBRID : window.google.maps.MapTypeId.ROADMAP
+      );
+    }
+  };
+
+  // Reset map view to global position at the start of every new round
+  useEffect(() => {
+    if (gameStatus === 'PLAYING' && googleMapRef.current && window.google) {
+      googleMapRef.current.setCenter({ lat: 20, lng: 0 });
+      googleMapRef.current.setZoom(2);
+      if (targetMarkerRef.current) targetMarkerRef.current.setMap(null);
+      if (linePolylineRef.current) linePolylineRef.current.setMap(null);
+    }
+  }, [currentRoundIndex, gameStatus]);
 
   // 1. Initialize persistent google.maps.Map once
   useEffect(() => {
@@ -40,15 +61,7 @@ export const GoogleGuessMap: React.FC<GoogleGuessMapProps> = ({ apiKey, isExpand
           maxZoom: 18,
           mapTypeId: google.maps.MapTypeId.HYBRID,
           disableDefaultUI: false,
-          mapTypeControl: true,
-          mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: google.maps.ControlPosition.TOP_LEFT,
-            mapTypeIds: [
-              google.maps.MapTypeId.ROADMAP,
-              google.maps.MapTypeId.HYBRID
-            ]
-          },
+          mapTypeControl: false, // Moved to bottom white bar controls
           zoomControl: true,
           zoomControlOptions: {
             position: google.maps.ControlPosition.LEFT_BOTTOM
@@ -216,8 +229,9 @@ export const GoogleGuessMap: React.FC<GoogleGuessMapProps> = ({ apiKey, isExpand
 
       {/* Submit Guess Button Bar (Only shown when expanded and playing) */}
       {gameStatus === 'PLAYING' && isExpanded && (
-        <div className="p-3 bg-white/95 border-t border-slate-200 flex items-center justify-between gap-3">
-          <div className="text-xs text-slate-600 font-mono flex items-center gap-2 truncate">
+        <div className="p-3 bg-white/95 border-t border-slate-200 flex items-center justify-between gap-2.5 z-20">
+          {/* Left: Pin text / Coordinates */}
+          <div className="text-xs text-slate-600 font-mono flex items-center gap-2 truncate min-w-0">
             <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
             {selectedGuess ? (
               <>
@@ -236,16 +250,49 @@ export const GoogleGuessMap: React.FC<GoogleGuessMapProps> = ({ apiKey, isExpand
                 </button>
               </>
             ) : (
-              <span>Click map to place pin</span>
+              <span className="text-slate-500 text-xs truncate">Click map to place pin</span>
             )}
           </div>
 
+          {/* Middle: Map / Hybrid Switcher Pill */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleMapType('roadmap');
+              }}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                mapType === 'roadmap'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Map
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleMapType('hybrid');
+              }}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                mapType === 'hybrid'
+                  ? 'bg-white text-emerald-800 shadow-xs border border-slate-200/80 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Hybrid
+            </button>
+          </div>
+
+          {/* Right: Enlarged Double-Width Guess Button */}
           <button
             onClick={handleSubmitGuess}
             disabled={!selectedGuess}
-            className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md ${
+            className={`min-w-[140px] sm:min-w-[160px] px-8 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shrink-0 ${
               selectedGuess
-                ? 'bg-teal-600 hover:bg-teal-500 text-white cursor-pointer shadow-teal-600/20 hover:scale-[1.02] active:scale-[0.98]'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-emerald-600/20 hover:scale-[1.02] active:scale-[0.98]'
                 : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
             }`}
           >
