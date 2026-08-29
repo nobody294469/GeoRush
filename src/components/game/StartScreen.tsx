@@ -201,7 +201,7 @@ export const StartScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* 1. FIXED TOP BAR (Expedition Logo, Settings, Sound, Player Name) */}
       {/* ========================================================================= */}
-      <header className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 h-16 px-4 sm:px-8 flex items-center justify-between shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 h-14 px-4 sm:px-6 flex items-center justify-between shadow-xs">
         
         {/* Left: App Brand & Name */}
         <div 
@@ -209,14 +209,14 @@ export const StartScreen: React.FC = () => {
           className="cursor-pointer group"
           title="Return to Main Menu"
         >
-          <ExpeditionLogo size="md" />
+          <ExpeditionLogo size="sm" />
         </div>
 
         {/* Right Controls: Player Name, Wallpaper Pill, Sound Toggle, Settings */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           
           {/* Player Name */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-xs">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-xs">
             <User className="w-3.5 h-3.5 text-slate-500" />
             {isEditingName ? (
               <form onSubmit={handleSaveName} className="inline-flex items-center gap-1">
@@ -224,7 +224,7 @@ export const StartScreen: React.FC = () => {
                   type="text"
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
-                  className="w-24 px-2 py-0.5 bg-white rounded-md text-xs font-semibold text-slate-900 border border-emerald-500 focus:outline-none"
+                  className="w-24 px-1.5 py-0.5 bg-white rounded-md text-xs font-semibold text-slate-900 border border-emerald-500 focus:outline-none"
                   maxLength={20}
                   autoFocus
                 />
@@ -239,7 +239,7 @@ export const StartScreen: React.FC = () => {
                   setNameInput(playerName);
                   setIsEditingName(true);
                 }}
-                className="font-semibold text-slate-800 hover:text-emerald-600 transition-colors cursor-pointer"
+                className="font-semibold text-slate-800 hover:text-emerald-600 transition-colors cursor-pointer max-w-[120px] truncate"
                 title="Click to edit player display name"
               >
                 {playerName}
@@ -251,11 +251,11 @@ export const StartScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsSettingsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs cursor-pointer transition-all"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs cursor-pointer transition-all"
             title={`Active Wallpaper: ${currentWallpaperInfo.wallpaper.name} (Click to change)`}
           >
             <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="hidden md:inline max-w-[130px] truncate">{currentWallpaperInfo.wallpaper.name}</span>
+            <span className="hidden md:inline max-w-[110px] truncate">{currentWallpaperInfo.wallpaper.name}</span>
             {currentWallpaperInfo.isDailyAuto && (
               <span className="text-[9px] bg-emerald-200/70 text-emerald-900 font-mono px-1 py-0.2 rounded font-bold">
                 DAILY
@@ -267,7 +267,7 @@ export const StartScreen: React.FC = () => {
           <button
             type="button"
             onClick={toggleSound}
-            className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shadow-xs ${
+            className={`p-1.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center shadow-xs ${
               soundEnabled
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
                 : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-700'
@@ -283,13 +283,13 @@ export const StartScreen: React.FC = () => {
             type="button"
             id="home-settings-btn"
             onClick={() => setIsSettingsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-semibold text-xs transition-all cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-semibold text-xs transition-all cursor-pointer shadow-xs"
             title="Open Audio, Scenery & Game Settings"
           >
-            <Settings className="w-4 h-4 text-slate-600" />
+            <Settings className="w-3.5 h-3.5 text-slate-600" />
             <span className="hidden sm:inline">Settings</span>
             {ambientEnabled && soundEnabled && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Ambient Sound Active" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Ambient Sound Active" />
             )}
           </button>
 
@@ -299,8 +299,8 @@ export const StartScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN CENTER CONTENT AREA */}
       {/* ========================================================================= */}
-      <div className="pt-20 pb-16 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 w-full max-w-6xl mx-auto relative z-10">
-        <div className="w-full space-y-5">
+      <div className="pt-16 pb-6 min-h-screen flex items-center justify-center px-3 sm:px-6 w-full max-w-5xl mx-auto relative z-10">
+        <div className="w-full space-y-3.5">
 
           {/* Location Resolution Error Banner */}
           {locationError && (
@@ -329,45 +329,45 @@ export const StartScreen: React.FC = () => {
           {/* VIEW 1: HOME SCREEN (Left Side: Solo/Multi/Code; Right Side: Badges + Daily + Guide) */}
           {/* ========================================================================= */}
           {screenView === 'home' && (
-            <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <main className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
               
               {/* LEFT SIDE (7 COLS): Play Solo, Multiplayer, and Join With Code */}
-              <div className="lg:col-span-7 space-y-4 text-left">
+              <div className="lg:col-span-7 flex flex-col justify-between space-y-2.5 text-left">
                 
                 {/* 1. Play Solo Card (Field Expedition Card) */}
                 <div 
                   onClick={() => setScreenView('solo')}
-                  className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-emerald-500 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group relative overflow-hidden"
+                  className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-emerald-500 rounded-2xl p-4 sm:p-4.5 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-2.5 group relative overflow-hidden flex-1"
                 >
                   {/* Subtle Cartographic Accent Top Right */}
-                  <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-emerald-50/80 to-transparent rounded-bl-full pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-50/80 to-transparent rounded-bl-full pointer-events-none" />
 
-                  <div className="flex items-start justify-between gap-4 relative z-10">
-                    <div className="space-y-1.5">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold tracking-wide">
-                        <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                  <div className="flex items-start justify-between gap-3 relative z-10">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold tracking-wide">
+                        <Compass className="w-3 h-3 text-emerald-600" />
                         <span>Solo Reconnaissance</span>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
                         Play Solo Expedition
                       </h3>
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md">
+                      <p className="text-xs text-slate-600 leading-relaxed max-w-md">
                         Drop into global street panoramas across Classic 5-round scoring, rapid 30s Time Attack, or continuous Country Streaks.
                       </p>
                     </div>
 
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shrink-0 shadow-xs">
-                      <Mountain className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shrink-0 shadow-xs">
+                      <Mountain className="w-5 h-5" />
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-700 group-hover:text-emerald-800 relative z-10">
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-700 group-hover:text-emerald-800 relative z-10">
                     <span className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
                       <span>Classic 5-Round</span> • <span>Time Attack</span> • <span>Streak</span>
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <span>Configure Match</span>
-                      <ChevronRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" />
                     </span>
                   </div>
                 </div>
@@ -375,50 +375,50 @@ export const StartScreen: React.FC = () => {
                 {/* 2. Multiplayer Card (Tactical Radar Card) */}
                 <div 
                   onClick={() => setScreenView('multiplayer')}
-                  className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-teal-500 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group relative overflow-hidden"
+                  className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-teal-500 rounded-2xl p-4 sm:p-4.5 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-2.5 group relative overflow-hidden flex-1"
                 >
                   {/* Subtle Cartographic Accent Top Right */}
-                  <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-teal-50/80 to-transparent rounded-bl-full pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-teal-50/80 to-transparent rounded-bl-full pointer-events-none" />
 
-                  <div className="flex items-start justify-between gap-4 relative z-10">
-                    <div className="space-y-1.5">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-semibold tracking-wide">
-                        <Radio className="w-3.5 h-3.5 text-teal-600" />
+                  <div className="flex items-start justify-between gap-3 relative z-10">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-semibold tracking-wide">
+                        <Radio className="w-3 h-3 text-teal-600" />
                         <span>Live Synchronized Arena</span>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
                         Multiplayer & 1v1 Duels
                       </h3>
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md">
+                      <p className="text-xs text-slate-600 leading-relaxed max-w-md">
                         Host custom lobbies or battle friends in real-time synchronized rounds with live health damage, speed bonuses, and identical drops.
                       </p>
                     </div>
 
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-all shrink-0 shadow-xs">
-                      <Swords className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-all shrink-0 shadow-xs">
+                      <Swords className="w-5 h-5" />
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-teal-700 group-hover:text-teal-800 relative z-10">
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-teal-700 group-hover:text-teal-800 relative z-10">
                     <span className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
                       <span>1v1 Duel Mode</span> • <span>Group Lobbies</span> • <span>Custom Seeds</span>
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <span>Host or Join</span>
-                      <ChevronRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" />
                     </span>
                   </div>
                 </div>
 
                 {/* 3. Already Have a Code? (Compact Field Pass) */}
-                <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
-                      <KeyRound className="w-4 h-4 text-slate-600" />
+                <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 sm:p-3 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
+                      <KeyRound className="w-3.5 h-3.5 text-slate-600" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900">Have a room code?</h4>
-                      <p className="text-[11px] text-slate-500">Enter a 6-character room key to jump in</p>
+                      <h4 className="text-xs font-bold text-slate-900 leading-tight">Have a room code?</h4>
+                      <p className="text-[10px] text-slate-500">Enter a 6-character room key to jump in</p>
                     </div>
                   </div>
 
@@ -429,15 +429,15 @@ export const StartScreen: React.FC = () => {
                       placeholder="ROOM CODE"
                       value={quickRoomCode}
                       onChange={(e) => setQuickRoomCode(e.target.value.toUpperCase())}
-                      className="w-full sm:w-32 bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-1.5 text-xs font-mono font-semibold tracking-wider text-slate-900 placeholder-slate-400 uppercase focus:outline-none transition-colors"
+                      className="w-full sm:w-28 bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-lg px-2.5 py-1 text-xs font-mono font-semibold tracking-wider text-slate-900 placeholder-slate-400 uppercase focus:outline-none transition-colors text-center"
                     />
                     <button
                       type="submit"
                       disabled={!quickRoomCode.trim()}
-                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-600 disabled:opacity-40 text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs shrink-0 flex items-center gap-1"
+                      className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-emerald-600 disabled:opacity-40 text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs shrink-0 flex items-center gap-1"
                     >
                       <span>Join</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <ChevronRight className="w-3 h-3" />
                     </button>
                   </form>
                 </div>
@@ -445,50 +445,50 @@ export const StartScreen: React.FC = () => {
               </div>
 
               {/* RIGHT SIDE (5 COLS): Circular Medals (Top) + Daily Challenge + Explorer Field Guide */}
-              <div className="lg:col-span-5 space-y-4 text-left">
+              <div className="lg:col-span-5 flex flex-col justify-between space-y-2.5 text-left">
                 
                 {/* BESPOKE EXPLORER MEDALS BAR (Level Insignia, Honors Medal, Streak / Shortcuts) */}
-                <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-3 shadow-xs flex items-center justify-around gap-2">
+                <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-2 sm:p-2.5 shadow-2xs flex items-center justify-around gap-2">
                   
                   {/* Rank & Level Insignia */}
                   <button
                     type="button"
                     onClick={() => setIsLevelModalOpen(true)}
-                    className="flex flex-col items-center gap-1 group cursor-pointer"
+                    className="flex flex-col items-center gap-0.5 group cursor-pointer"
                     title="Player Rank & Level Progression"
                   >
                     <div className="transform group-hover:scale-105 transition-transform">
-                      <RankInsignia level={progression.level} className="w-11 h-11" />
+                      <RankInsignia level={progression.level} className="w-9 h-9" />
                     </div>
                     <span className="text-[10px] font-semibold text-slate-600 font-mono">
                       {progression.progressPercent}% XP
                     </span>
                   </button>
 
-                  <div className="w-px h-8 bg-slate-200" />
+                  <div className="w-px h-7 bg-slate-200" />
 
                   {/* Honors & Achievements Medal */}
                   <button
                     type="button"
                     onClick={() => setIsAchievementsModalOpen(true)}
-                    className="flex flex-col items-center gap-1 group cursor-pointer"
+                    className="flex flex-col items-center gap-0.5 group cursor-pointer"
                     title="Explorer Milestones & Cartographer Honors"
                   >
                     <div className="transform group-hover:scale-105 transition-transform">
-                      <MedalInsignia className="w-11 h-11" />
+                      <MedalInsignia className="w-9 h-9" />
                     </div>
                     <span className="text-[10px] font-semibold text-slate-600 font-mono">
                       {Object.keys(progression.unlockedAchievements).length} Badges
                     </span>
                   </button>
 
-                  <div className="w-px h-8 bg-slate-200" />
+                  <div className="w-px h-7 bg-slate-200" />
 
                   {/* Daily Streak or Shortcuts Badge */}
                   {dailyInfo.currentStreak > 0 ? (
-                    <div className="flex flex-col items-center gap-1" title="Active Daily Streak">
-                      <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-xs">
-                        <Flame className="w-5 h-5 fill-rose-500 text-rose-500" />
+                    <div className="flex flex-col items-center gap-0.5" title="Active Daily Streak">
+                      <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-xs">
+                        <Flame className="w-4 h-4 fill-rose-500 text-rose-500" />
                       </div>
                       <span className="text-[10px] font-bold text-rose-600 font-mono">
                         {dailyInfo.currentStreak}d Streak
@@ -498,11 +498,11 @@ export const StartScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsShortcutsOpen(true)}
-                      className="flex flex-col items-center gap-1 group cursor-pointer"
+                      className="flex flex-col items-center gap-0.5 group cursor-pointer"
                       title="View Keyboard Shortcuts"
                     >
-                      <div className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                        <Keyboard className="w-5 h-5" />
+                      <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                        <Keyboard className="w-4 h-4" />
                       </div>
                       <span className="text-[10px] font-semibold text-slate-600 font-mono">
                         Keys
@@ -513,25 +513,25 @@ export const StartScreen: React.FC = () => {
                 </div>
 
                 {/* Daily Challenge Card (with Daily Chronometer Insignia) */}
-                <div className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-amber-400 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3 transition-all">
-                  <div className="flex items-start gap-3.5">
-                    <DailyChronometerInsignia className="w-11 h-11 shrink-0" />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                <div className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-amber-400 rounded-2xl p-3 sm:p-3.5 shadow-2xs flex flex-col justify-between space-y-2 transition-all flex-1">
+                  <div className="flex items-start gap-3">
+                    <DailyChronometerInsignia className="w-9 h-9 shrink-0" />
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
                           Daily Expedition
                         </span>
                         {dailyInfo.isCompletedToday ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-md border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Completed
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded-md border border-amber-200">
                             <Sparkles className="w-3 h-3 text-amber-600" /> Today's Seed
                           </span>
                         )}
                       </div>
-                      <h4 className="text-sm font-bold text-slate-900">
+                      <h4 className="text-sm font-bold text-slate-900 leading-tight">
                         Global Daily Recon
                       </h4>
                       <p className="text-xs text-slate-600 leading-relaxed">
@@ -543,7 +543,7 @@ export const StartScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsDailyModalOpen(true)}
-                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                    className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                   >
                     <Play className="w-3.5 h-3.5 fill-slate-950 stroke-none" />
                     <span>{dailyInfo.isCompletedToday ? "View Today's Scores" : 'Play Daily Challenge'}</span>
@@ -551,11 +551,11 @@ export const StartScreen: React.FC = () => {
                 </div>
 
                 {/* Explorer Field Guide Card (with Field Atlas Insignia) */}
-                <div className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3 transition-all">
-                  <div className="flex items-start gap-3.5">
-                    <FieldAtlasInsignia className="w-11 h-11 shrink-0" />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                <div className="bg-white/95 backdrop-blur-md border border-slate-200 hover:border-emerald-400 rounded-2xl p-3 sm:p-3.5 shadow-2xs flex flex-col justify-between space-y-2 transition-all flex-1">
+                  <div className="flex items-start gap-3">
+                    <FieldAtlasInsignia className="w-9 h-9 shrink-0" />
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
                           Cartography Almanac
                         </span>
@@ -563,7 +563,7 @@ export const StartScreen: React.FC = () => {
                           Bollards • Plates
                         </span>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-900">
+                      <h4 className="text-sm font-bold text-slate-900 leading-tight">
                         Explorer Field Guide
                       </h4>
                       <p className="text-xs text-slate-600 leading-relaxed">
@@ -575,7 +575,7 @@ export const StartScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsFieldGuideModalOpen(true)}
-                    className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
+                    className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
                   >
                     <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Browse Field Guide & Meta</span>
@@ -591,53 +591,53 @@ export const StartScreen: React.FC = () => {
           {/* VIEW 2: SOLO CONFIGURATION SCREEN */}
           {/* ========================================================================= */}
           {screenView === 'solo' && (
-            <main className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-6 sm:p-7 space-y-5 shadow-lg text-left max-w-3xl mx-auto">
+            <main className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-lg text-left max-w-3xl mx-auto">
               
               {/* Header */}
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3.5">
-                <div className="space-y-1">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setScreenView('home')}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Back to Main Menu"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back to Main Menu</span>
                   </button>
-                  <h3 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                    <Mountain className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                    <Mountain className="w-4.5 h-4.5 text-emerald-600" />
                     Solo Reconnaissance Match
                   </h3>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 hidden sm:inline-block">
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 hidden sm:inline-block">
                   Custom Match
                 </span>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 
                 {/* 1. Game Mode Selection */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Gamepad2 className="w-4 h-4 text-emerald-600" /> 1. Select Game Mode
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Gamepad2 className="w-3.5 h-3.5 text-emerald-600" /> 1. Select Game Mode
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     
                     {/* Classic Mode */}
                     <button
                       type="button"
                       onClick={() => setGameType('classic')}
-                      className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         gameType === 'classic'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-slate-900'
+                          ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/30 text-slate-900'
                           : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
                       }`}
                     >
                       <p className="font-bold text-xs uppercase tracking-wide text-slate-900">
                         Classic Mode
                       </p>
-                      <p className="text-xs text-slate-500 mt-1 leading-snug">
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
                         5 rounds of standard distance scoring (up to 5,000 pts/round).
                       </p>
                     </button>
@@ -646,16 +646,16 @@ export const StartScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setGameType('time_attack')}
-                      className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         gameType === 'time_attack'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-slate-900'
+                          ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/30 text-slate-900'
                           : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
                       }`}
                     >
                       <p className="font-bold text-xs uppercase tracking-wide flex items-center gap-1.5 text-slate-900">
                         <Clock className="w-3.5 h-3.5 text-sky-600" /> Time Attack
                       </p>
-                      <p className="text-xs text-slate-500 mt-1 leading-snug">
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
                         30s strict timer with rapid speed deduction multipliers.
                       </p>
                     </button>
@@ -667,16 +667,16 @@ export const StartScreen: React.FC = () => {
                         setGameType('country_streak');
                         setSelectedMapId('world');
                       }}
-                      className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         gameType === 'country_streak'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-slate-900'
+                          ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/30 text-slate-900'
                           : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
                       }`}
                     >
                       <p className="font-bold text-xs uppercase tracking-wide flex items-center gap-1.5 text-slate-900">
                         <Flame className="w-3.5 h-3.5 text-rose-600" /> Country Streak
                       </p>
-                      <p className="text-xs text-slate-500 mt-1 leading-snug">
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
                         Identify consecutive countries accurately until you miss.
                       </p>
                     </button>
@@ -684,10 +684,10 @@ export const StartScreen: React.FC = () => {
                 </div>
 
                 {/* 2. Map Selection */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <MapIcon className="w-4 h-4 text-emerald-600" /> 2. Select Territory
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <MapIcon className="w-3.5 h-3.5 text-emerald-600" /> 2. Select Territory
                     </label>
                     {gameType === 'country_streak' && (
                       <span className="text-[10px] font-mono text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -700,10 +700,10 @@ export const StartScreen: React.FC = () => {
                       value={gameType === 'country_streak' ? 'world' : selectedMapId}
                       onChange={(e) => setSelectedMapId(e.target.value)}
                       disabled={gameType === 'country_streak'}
-                      className={`w-full appearance-none border text-slate-900 py-2.5 px-3.5 rounded-xl font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                      className={`w-full appearance-none border text-slate-900 py-2 px-3 rounded-xl font-semibold text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
                         gameType === 'country_streak'
                           ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400'
-                          : 'bg-white border-slate-200 hover:border-slate-300 cursor-pointer shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300 cursor-pointer shadow-2xs'
                       }`}
                     >
                       {maps.map(map => (
@@ -720,38 +720,38 @@ export const StartScreen: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* 3. Movement Rules Selection */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> 3. Movement Rules
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 3. Movement Rules
                   </label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     
                     {/* Normal Mode */}
                     <button
                       type="button"
                       onClick={() => setSelectedMode('normal')}
-                      className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         selectedMode === 'normal'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-slate-900'
+                          ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/30 text-slate-900'
                           : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-0.5">
                         <span className="font-bold text-xs uppercase tracking-wide text-slate-900">
                           Normal Mode
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px] font-semibold">
-                          FREE MOVEMENT
+                        <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[9px] font-bold">
+                          FREE MOVE
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        Move along roads, pan 360°, and zoom into road signs freely.
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        Move along roads, pan 360°, and zoom freely.
                       </p>
                     </button>
 
@@ -759,22 +759,22 @@ export const StartScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedMode('pro')}
-                      className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         selectedMode === 'pro'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-slate-900'
+                          ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/30 text-slate-900'
                           : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-0.5">
                         <span className="font-bold text-xs uppercase tracking-wide text-slate-900">
                           Pro Mode
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-semibold border border-amber-200">
+                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 text-[9px] font-bold border border-amber-200">
                           NMPZ
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        No Move, Pan, or Zoom. Test pure geographic recognition.
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        No Move, Pan, or Zoom. Pure deduction.
                       </p>
                     </button>
 
@@ -782,10 +782,10 @@ export const StartScreen: React.FC = () => {
                 </div>
 
                 {/* 4. Round Time Limit */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-emerald-600" /> 4. Round Time Limit
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600" /> 4. Round Time Limit
                     </label>
                     {gameType === 'time_attack' && (
                       <span className="text-[10px] font-mono text-sky-800 font-semibold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
@@ -794,7 +794,7 @@ export const StartScreen: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-1.5">
                     {([
                       { value: 0, label: 'Unlimited' },
                       { value: 30, label: '30s' },
@@ -807,13 +807,13 @@ export const StartScreen: React.FC = () => {
                         type="button"
                         disabled={gameType === 'time_attack'}
                         onClick={() => setTimeLimit(option.value as TimeLimitRule)}
-                        className={`py-2 px-1 rounded-xl text-xs font-semibold font-mono transition-all text-center cursor-pointer ${
+                        className={`py-1.5 px-1 rounded-lg text-xs font-semibold font-mono transition-all text-center cursor-pointer ${
                           gameType === 'time_attack'
                             ? option.value === 30
                               ? 'bg-emerald-600 text-white font-bold'
                               : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
                             : timeLimit === option.value
-                            ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                            ? 'bg-emerald-600 text-white font-bold shadow-2xs'
                             : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
                         }`}
                       >
@@ -826,11 +826,11 @@ export const StartScreen: React.FC = () => {
               </div>
 
               {/* Launch Action Bar */}
-              <div className="pt-3.5 border-t border-slate-100 flex items-center gap-3">
+              <div className="pt-2.5 border-t border-slate-100 flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setScreenView('home')}
-                  className="px-5 py-3 rounded-xl font-semibold text-xs uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Back
                 </button>
@@ -839,7 +839,7 @@ export const StartScreen: React.FC = () => {
                   type="button"
                   onClick={handleStartSolo}
                   disabled={isLoadingLocations}
-                  className={`flex-1 py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     isLoadingLocations
                       ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
