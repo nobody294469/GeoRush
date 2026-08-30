@@ -109,10 +109,10 @@ export const GuessMap: React.FC<GuessMapProps> = ({ className = '', isKeyboardEx
       attributionControl: false
     });
 
-    // Clean Dark/Voyager Basemap
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Clean OpenStreetMap Basemap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd'
+      subdomains: ['a', 'b', 'c']
     }).addTo(map);
 
     // Click handler to place guess

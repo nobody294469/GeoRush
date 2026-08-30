@@ -73,11 +73,14 @@ const createGuessPinIcon = (roundNumber: number, score: number, isSelected: bool
 export const MatchSummaryMap: React.FC<MatchSummaryMapProps> = ({
   singlePlayerResults,
   multiplayerRoundResults,
-  apiMode = 'MOCK',
+  apiMode,
   apiKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '',
   className = '',
 }) => {
   const [selectedRoundFilter, setSelectedRoundFilter] = useState<number | null>(null);
+
+  const hasGoogleMaps = Boolean(apiKey || (typeof window !== 'undefined' && window.google?.maps));
+  const useGoogleMaps = hasGoogleMaps && apiMode !== 'MOCK';
 
   const leafletContainerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
@@ -134,7 +137,7 @@ export const MatchSummaryMap: React.FC<MatchSummaryMapProps> = ({
 
   // Leaflet Map Rendering (for MOCK mode or fallback)
   useEffect(() => {
-    if (apiMode === 'REAL' && apiKey) return;
+    if (useGoogleMaps) return;
     if (!leafletContainerRef.current) return;
 
     if (!leafletMapRef.current) {
@@ -146,9 +149,9 @@ export const MatchSummaryMap: React.FC<MatchSummaryMapProps> = ({
         attributionControl: false,
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        subdomains: 'abcd',
+        subdomains: ['a', 'b', 'c'],
       }).addTo(map);
 
       leafletMapRef.current = map;
@@ -234,11 +237,11 @@ export const MatchSummaryMap: React.FC<MatchSummaryMapProps> = ({
         duration: 0.6,
       });
     }
-  }, [rounds, selectedRoundFilter, apiMode, apiKey]);
+  }, [rounds, selectedRoundFilter, useGoogleMaps]);
 
   // Google Maps Rendering (for REAL mode)
   useEffect(() => {
-    if (apiMode !== 'REAL' || !apiKey) return;
+    if (!useGoogleMaps) return;
     if (!googleContainerRef.current) return;
 
     let isMounted = true;
@@ -422,7 +425,7 @@ export const MatchSummaryMap: React.FC<MatchSummaryMapProps> = ({
 
       {/* Map Display Container */}
       <div className="w-full h-[340px] sm:h-[420px] rounded-2xl overflow-hidden border border-slate-200 shadow-md relative bg-slate-100">
-        {apiMode === 'REAL' && apiKey ? (
+        {useGoogleMaps ? (
           <div ref={googleContainerRef} className="w-full h-full" />
         ) : (
           <div ref={leafletContainerRef} className="w-full h-full" />
