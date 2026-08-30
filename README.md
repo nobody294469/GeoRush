@@ -10,9 +10,9 @@
 
 GeoRush is a geography guessing game where players explore 360° Street View panoramas and use visual clues such as architecture, road markings, language, scripts, and terrain to determine where they are.
 
-The game supports both **single-player challenges** and **server-authoritative real-time multiplayer**, with multiple competitive game modes, interactive maps, round-based scoring, and player progression.
+The game combines **single-player challenges, real-time multiplayer, asynchronous friend challenges, daily competition, learning resources, progression, achievements, and customization** into one geography-focused experience.
 
-The application uses **Google Maps Platform** for real Street View and map functionality, with a mock/offline mode available for development and environments without Google Maps access.
+Google Maps Platform provides the real Street View and interactive map experience, while a mock panorama mode and Leaflet/OpenStreetMap map fallback are available for development and environments where Google Maps is unavailable.
 
 ---
 
@@ -25,7 +25,7 @@ The application uses **Google Maps Platform** for real Street View and map funct
 | **Classic** | Five-round global location guessing challenge with distance-based scoring. |
 | **Country Streak** | Identify the country of each location and maintain your streak. |
 | **Time Attack** | Fast-paced rounds where quicker guesses receive a higher score multiplier. |
-| **Daily Challenge** | Deterministic daily challenge where locations are generated from the current date. |
+| **Daily Challenge** | A fixed daily challenge shared across players, available once per day. |
 
 ### Multiplayer
 
@@ -33,10 +33,111 @@ GeoRush uses **Socket.IO** for real-time multiplayer communication.
 
 | Mode | Description |
 |---|---|
-| **Classic Lobby** | Multiplayer match with configurable rounds where the highest cumulative score wins. |
-| **1v1 Duels** | Head-to-head HP-based competition where players deal damage based on their round performance. |
+| **Classic Lobby** | Multiplayer match where players compete across multiple rounds for the highest cumulative score. |
+| **1v1 Duels** | Head-to-head HP-based competition where round performance determines damage. |
 | **Country Streak** | Multiplayer elimination mode where incorrect country guesses eliminate players. |
 | **Time Attack** | Synchronized speed-based multiplayer rounds combining proximity and time-based scoring. |
+
+---
+
+## 📅 Daily Challenge
+
+The Daily Challenge gives every player the same fixed challenge for the day.
+
+- 🌎 **World Map**
+- 🎮 **Normal Mode**
+- ⏱️ **2-minute timer**
+- ⚙️ **Fixed game settings**
+- 🔄 Refreshes every day at **12 PM**
+- 🎯 Players can attempt it **only once per day**
+
+The deterministic daily setup allows players to compete on the same challenge rather than receiving independently generated rounds.
+
+---
+
+## 🤝 Challenge a Friend
+
+After completing a single-player game, players can use **Challenge a Friend** to create an asynchronous challenge.
+
+### How it works
+
+```text
+Complete Singleplayer Game
+          │
+          ▼
+     Challenge a Friend
+          │
+          ▼
+    Generate Challenge Link
+          │
+          ▼
+      Share the Link
+          │
+          ▼
+   Friend Opens the Link
+          │
+          ▼
+Same Rounds / Same Seed
+          │
+          ▼
+      Score to Beat
+```
+
+The invited player receives the **same rounds/seed** used by the original player and competes against the displayed score to beat.
+
+This allows two players to compete without needing to be online at the same time.
+
+---
+
+## 📖 Explorer Field Guide
+
+The **Explorer Field Guide** is a learning section available directly from the home screen.
+
+It helps players learn geographical clues that can improve their performance during gameplay.
+
+Topics include:
+
+- 🚗 Countries and regions that drive on the left or right side of the road
+- 🔤 Differences between alphabets and scripts used by different countries
+- 🪧 Bollards and roadside posts
+- 🌍 Other visual geography clues useful for location identification
+
+The Field Guide turns GeoRush into more than just a guessing game by giving players resources to **learn the clues used to make better guesses**.
+
+---
+
+## ⭐ XP, Levels & Achievements
+
+GeoRush includes a player progression system that rewards continued play.
+
+### XP & Levels
+
+Players earn **XP through gameplay**, allowing them to progress through levels as they continue playing.
+
+### Achievements
+
+GeoRush includes achievements for different styles of performance:
+
+| Achievement | Focus |
+|---|---|
+| 🎯 **Bullseye** | Exceptional location accuracy |
+| 💎 **Flawless** | Perfect performance |
+| 🔥 **Streak Titan** | Strong country streak performance |
+| ⚡ **Speed Demon** | Fast guessing performance |
+| 📅 **Daily Challenger** | Daily Challenge participation |
+
+---
+
+## 🖼️ Customization
+
+Players can personalize their GeoRush experience through the Settings interface.
+
+### Available customization includes:
+
+- 🖼️ Selectable home-screen wallpapers
+- 🔊 Audio and sound settings
+- ⌨️ Keyboard shortcuts
+- ⚙️ Gameplay and interface preferences
 
 ---
 
@@ -46,7 +147,7 @@ GeoRush uses **Socket.IO** for real-time multiplayer communication.
 Player
    │
    ▼
-Game Lobby
+Game / Multiplayer Lobby
    │
    ├── Select Game Mode
    ├── Select Map
@@ -55,7 +156,7 @@ Game Lobby
    ▼
 Round Starts
    │
-   ├── Server selects target
+   ├── Target is selected
    ├── Street View panorama is loaded
    └── Countdown begins
    │
@@ -70,11 +171,12 @@ Player Exploration
 Guess Submitted
    │
    ▼
-Server Calculates Result
+Score Calculation
    │
-   ├── Distance
-   ├── Score
-   └── Multiplayer effects
+   ├── Geographic distance
+   ├── Base score
+   ├── Time multiplier where applicable
+   └── Multiplayer effects where applicable
    │
    ▼
 Round Results
@@ -86,6 +188,11 @@ Round Results
    │
    ▼
 Next Round / Match Summary
+   │
+   ├── Final scores
+   ├── Performance
+   ├── XP / progression
+   └── Achievements
 ```
 
 ---
@@ -105,6 +212,8 @@ The application uses Google Maps for:
 - Target and player result markers
 - Geodesic lines between guesses and targets
 
+The result map can visualize the relationship between a player's guess and the actual target location after a round.
+
 ### Mock / Fallback Mode
 
 For development and environments where real Street View access is unavailable, GeoRush supports a mock panorama system.
@@ -119,16 +228,14 @@ GeoRush calculates geographic distance using the **Haversine formula**, which de
 
 ### Classic Scoring
 
-Classic mode uses exponential distance-based scoring.
+Classic mode uses distance-based exponential scoring.
 
 The system awards up to:
 
 - **5,000 points per round**
 - **25,000 points across five rounds**
 
-Very close guesses receive significantly higher scores, while extremely distant guesses approach zero.
-
-The implementation also includes a distance ceiling for maximum scoring and a maximum-distance boundary beyond which the score reaches zero.
+Closer guesses receive significantly higher scores, while very distant guesses receive progressively lower scores.
 
 ### Time Attack
 
@@ -190,9 +297,9 @@ GAME_FINISHED
 
 ### Target Protection
 
-During an active round, the target location is controlled by the server rather than being selected by individual clients.
+During an active multiplayer round, important target information is controlled by the server rather than being selected by individual clients.
 
-This allows the multiplayer game state and scoring to remain authoritative across connected players.
+This keeps the multiplayer game state and scoring authoritative.
 
 ### Real-Time Synchronization
 
@@ -234,9 +341,14 @@ Socket.IO synchronizes important events such as:
 - tsx
 - esbuild
 
-### Other
+### Audio & Interaction
 
 - Web Audio API
+- Keyboard shortcuts
+- Procedural/game audio and sound effects
+
+### Development
+
 - Vite
 - Jest / Node test tooling
 - localStorage for local player progression
@@ -275,11 +387,47 @@ GeoRush/
 │   ├── App.tsx
 │   └── main.tsx
 │
+├── screenshots/
+│   ├── home.png
+│   ├── single-player.png
+│   ├── round-result.png
+│   ├── multiplayer-lobby.png
+│   ├── multiplayer-game.png
+│   └── multiplayer-result.png
+│
 ├── server.ts
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts
 ```
+
+---
+
+## 📸 Screenshots
+
+### Home
+
+![GeoRush Home](screenshots/home.png)
+
+### Singleplayer
+
+![GeoRush Singleplayer](screenshots/single-player.png)
+
+### Round Result
+
+![GeoRush Round Result](screenshots/round-result.png)
+
+### Multiplayer Lobby
+
+![GeoRush Multiplayer Lobby](screenshots/multiplayer-lobby.png)
+
+### Multiplayer Gameplay
+
+![GeoRush Multiplayer Gameplay](screenshots/multiplayer-game.png)
+
+### Multiplayer Result
+
+![GeoRush Multiplayer Result](screenshots/multiplayer-result.png)
 
 ---
 
@@ -321,7 +469,7 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 VITE_MOCK_STREETVIEW=false
 ```
 
-> Never commit your real API keys or `.env` files to GitHub.
+> Never commit real API keys, `.env` files, or other credentials to GitHub.
 
 ### Development
 
@@ -357,16 +505,22 @@ GeoRush uses several measures to protect the application and its API integration
 
 Browser-side Google Maps API keys are inherently visible to the client because they are required by the Maps JavaScript API.
 
-To reduce unauthorized usage, the production web key is restricted by:
+The production Google Maps web key should therefore be restricted using:
 
-- HTTP referrer / website restriction
-- Google Maps JavaScript API restriction
+- HTTP referrer / website restrictions
+- API restrictions limited to the required Google Maps APIs
 
-API keys and other sensitive credentials should never be committed to the repository.
+Production secrets are supplied through the deployment environment rather than committed to the repository.
 
 ### Multiplayer
 
-Important multiplayer game state is maintained by the server, including target selection, round timing, scoring, and room state.
+Important multiplayer game state is maintained by the server, including:
+
+- Target selection
+- Round timing
+- Scoring
+- Room state
+- Match progression
 
 This prevents individual clients from being the sole authority over competitive game results.
 
@@ -400,41 +554,14 @@ The production application is hosted on **Google Cloud Run** and uses Google Map
 
 ---
 
-## 📸 Screenshots
-
-Suggested screenshots for the repository:
-
-| Screenshot | Recommended Content |
-|---|---|
-| `home.png` | GeoRush home screen |
-| `solo-gameplay.png` | Active Street View gameplay |
-| `multiplayer-lobby.png` | Multiplayer room/lobby |
-| `multiplayer-gameplay.png` | Active multiplayer round |
-| `round-result.png` | Google Maps round result |
-| `match-summary.png` | Final match standings |
-
-Example structure:
-
-```text
-docs/
-└── screenshots/
-    ├── home.png
-    ├── solo-gameplay.png
-    ├── multiplayer-lobby.png
-    ├── multiplayer-gameplay.png
-    ├── round-result.png
-    └── match-summary.png
-```
-
----
-
 ## 🛣️ Future Improvements
 
 Potential future improvements include:
 
 - Persistent global leaderboards
 - User authentication
-- Custom map/playlist creation
+- Persistent cloud-based player profiles
+- Custom map and playlist creation
 - Expanded multiplayer features
 - Additional gameplay modes
 - Further mobile optimization
