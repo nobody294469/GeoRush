@@ -444,7 +444,7 @@ GeoRush/
 Clone the repository:
 
 ```bash
-git clone https://github.com/solankisammyag/GeoRush.git
+git clone https://github.com/nobody294469/GeoRush.git
 cd GeoRush
 ```
 
